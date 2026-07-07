@@ -6,7 +6,7 @@ Terminal-first Hacker News client (`hn` binary). Specs versioned by release; eac
 
 | Version | Theme | Status | Specs |
 |---------|-------|--------|-------|
-| V1 | Browse + search + comments | **implementing** | [v1/](v1/00-overview.md) |
+| V1 | Browse + search + comments | **done** | [v1/](v1/00-overview.md) |
 | V2 | Local AI: summaries + Ask AI (Ollama) | spec'd | [v2/](v2/00-overview.md) |
 | V3 | Subscriptions + watcher + Telegram + SQLite + bookmarks | spec'd | [v3/](v3/00-overview.md) |
 
