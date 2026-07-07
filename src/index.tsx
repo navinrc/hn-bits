@@ -1,8 +1,11 @@
 #!/usr/bin/env node
-import { render, Box, Text } from 'ink';
+import { Command } from 'commander';
+import { render } from 'ink';
+import { App } from './ui/App.js';
 
-render(
-  <Box borderStyle="round" paddingX={1}>
-    <Text color="green">hn-bits alive</Text>
-  </Box>,
-);
+const program = new Command();
+program.name('hn').description('Terminal-first Hacker News client').version('0.1.0');
+program.action(() => {
+  render(<App />);
+});
+program.parse();
