@@ -8,15 +8,16 @@ import { getHostname } from '../lib/url.js';
 interface StoryDetailProps {
   story: Story;
   onBack: () => void;
+  onOpenComments: () => void;
 }
 
-export function StoryDetail({ story, onBack }: StoryDetailProps): JSX.Element {
+export function StoryDetail({ story, onBack, onOpenComments }: StoryDetailProps): JSX.Element {
   const hostname = getHostname(story.url);
 
   useInput((input, key) => {
     if (key.escape || input === 'b') return onBack();
     if (input === 'o') return void open(story.url ?? hnItemUrl(story.id));
-    // enter/c: Comments view doesn't exist yet (tracer bullet scope) — intentional no-op
+    if (key.return || input === 'c') return onOpenComments();
   });
 
   return (
