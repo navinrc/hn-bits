@@ -2,18 +2,24 @@ import { useEffect, useState, type JSX } from 'react';
 import { Box, Text, useInput } from 'ink';
 import open from 'open';
 import { fetchStories, fetchStoryIds, hnItemUrl, type Feed, type Story } from '../api/firebase.js';
-import { formatAge } from '../lib/format.js';
 import { PAGE_SIZE, clampSelection, mapFeedKey, pageSlice, totalPages } from '../lib/listNavigation.js';
+import { StoryRow } from './StoryRow.js';
 
 interface StoryListProps {
   feed: Feed;
   onFeedChange: (feed: Feed) => void;
   onSelectStory: (story: Story) => void;
+  onSearchRequested: () => void;
 }
 
 type Status = 'loading' | 'ready' | 'error';
 
-export function StoryList({ feed, onFeedChange, onSelectStory }: StoryListProps): JSX.Element {
+export function StoryList({
+  feed,
+  onFeedChange,
+  onSelectStory,
+  onSearchRequested,
+}: StoryListProps): JSX.Element {
   const [storyIds, setStoryIds] = useState<number[]>([]);
   const [stories, setStories] = useState<Story[]>([]);
   const [page, setPage] = useState(0);
@@ -63,6 +69,7 @@ export function StoryList({ feed, onFeedChange, onSelectStory }: StoryListProps)
   useInput((input, key) => {
     const nextFeed = mapFeedKey(input);
     if (nextFeed) return onFeedChange(nextFeed);
+    if (input === '/') return onSearchRequested();
     if (input === 'j' || key.downArrow) return setSelected((s) => clampSelection(s, 1, stories.length));
     if (input === 'k' || key.upArrow) return setSelected((s) => clampSelection(s, -1, stories.length));
     if (input === 'o') return openSelectedStory();
@@ -88,22 +95,9 @@ export function StoryList({ feed, onFeedChange, onSelectStory }: StoryListProps)
           isSelected={index === selected}
         />
       ))}
-      <Text dimColor>j/k move · enter details · o browser · t/n/b feed · ]/[ page · q quit</Text>
+      <Text dimColor>
+        j/k move · enter details · o browser · t/n/b feed · ]/[ page · / search · q quit
+      </Text>
     </Box>
-  );
-}
-
-interface StoryRowProps {
-  story: Story;
-  rank: number;
-  isSelected: boolean;
-}
-
-function StoryRow({ story, rank, isSelected }: StoryRowProps): JSX.Element {
-  const marker = isSelected ? '▸' : ' ';
-  return (
-    <Text inverse={isSelected}>
-      {marker} {rank}. {story.title}  {story.score}⯅ {story.descendants}💬 {formatAge(story.time)}  {story.by}
-    </Text>
   );
 }
