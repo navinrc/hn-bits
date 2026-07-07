@@ -8,4 +8,10 @@ program.name('hn').description('Terminal-first Hacker News client').version('0.1
 program.action(() => {
   render(<App />);
 });
+program
+  .command('search <query...>')
+  .description('Search stories by keyword')
+  .action((queryParts: string[]) => {
+    render(<App initialQuery={queryParts.join(' ')} />);
+  });
 program.parse();
