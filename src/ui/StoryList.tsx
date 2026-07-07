@@ -8,11 +8,12 @@ import { PAGE_SIZE, clampSelection, mapFeedKey, pageSlice, totalPages } from '..
 interface StoryListProps {
   feed: Feed;
   onFeedChange: (feed: Feed) => void;
+  onSelectStory: (story: Story) => void;
 }
 
 type Status = 'loading' | 'ready' | 'error';
 
-export function StoryList({ feed, onFeedChange }: StoryListProps): JSX.Element {
+export function StoryList({ feed, onFeedChange, onSelectStory }: StoryListProps): JSX.Element {
   const [storyIds, setStoryIds] = useState<number[]>([]);
   const [stories, setStories] = useState<Story[]>([]);
   const [page, setPage] = useState(0);
@@ -68,7 +69,7 @@ export function StoryList({ feed, onFeedChange }: StoryListProps): JSX.Element {
     if (input === ']') return setPage((p) => Math.min(p + 1, totalPages(storyIds.length) - 1));
     if (input === '[') return setPage((p) => Math.max(p - 1, 0));
     if (input === 'r' && status === 'error') return loadStoryIds();
-    // enter: StoryDetail doesn't exist yet (tracer bullet scope) — intentional no-op
+    if (key.return && stories[selected]) return onSelectStory(stories[selected]);
   });
 
   if (status === 'loading') return <Text>loading…</Text>;
@@ -87,7 +88,7 @@ export function StoryList({ feed, onFeedChange }: StoryListProps): JSX.Element {
           isSelected={index === selected}
         />
       ))}
-      <Text dimColor>j/k move · enter open · o browser · t/n/b feed · ]/[ page · q quit</Text>
+      <Text dimColor>j/k move · enter details · o browser · t/n/b feed · ]/[ page · q quit</Text>
     </Box>
   );
 }
