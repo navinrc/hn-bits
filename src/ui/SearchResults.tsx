@@ -1,64 +1,51 @@
 import { useEffect, useState, type JSX } from 'react';
 import { Box, Text, useInput } from 'ink';
 import open from 'open';
-import { fetchStories, fetchStoryIds, hnItemUrl, type Feed, type Story } from '../api/firebase.js';
-import { PAGE_SIZE, clampSelection, mapFeedKey, pageSlice, totalPages } from '../lib/listNavigation.js';
+import { searchStories } from '../api/algolia.js';
+import { hnItemUrl, type Story } from '../api/firebase.js';
+import { PAGE_SIZE, clampSelection } from '../lib/listNavigation.js';
 import { StoryRow } from './StoryRow.js';
 
-interface StoryListProps {
-  feed: Feed;
-  onFeedChange: (feed: Feed) => void;
+interface SearchResultsProps {
+  query: string;
+  from: 'tui' | 'cli';
   onSelectStory: (story: Story) => void;
-  onSearchRequested: () => void;
+  onExit: () => void;
+  onSearchAgain: () => void;
 }
 
 type Status = 'loading' | 'ready' | 'error';
 
-export function StoryList({
-  feed,
-  onFeedChange,
+export function SearchResults({
+  query,
+  from,
   onSelectStory,
-  onSearchRequested,
-}: StoryListProps): JSX.Element {
-  const [storyIds, setStoryIds] = useState<number[]>([]);
-  const [stories, setStories] = useState<Story[]>([]);
+  onExit,
+  onSearchAgain,
+}: SearchResultsProps): JSX.Element {
   const [page, setPage] = useState(0);
+  const [stories, setStories] = useState<Story[]>([]);
+  const [hasMore, setHasMore] = useState(false);
   const [selected, setSelected] = useState(0);
   const [status, setStatus] = useState<Status>('loading');
   const [error, setError] = useState('');
 
   useEffect(() => {
-    loadStoryIds();
-  }, [feed]);
+    load();
+  }, [query, page]);
 
-  useEffect(() => {
-    if (storyIds.length > 0) loadPage();
-  }, [storyIds, page]);
-
-  async function loadStoryIds() {
-    setStatus('loading');
-    setPage(0);
-    try {
-      setStoryIds(await fetchStoryIds(feed));
-    } catch (err) {
-      failWith(err);
-    }
-  }
-
-  async function loadPage() {
+  async function load() {
     setStatus('loading');
     try {
-      setStories(await fetchStories(pageSlice(storyIds, page, PAGE_SIZE)));
+      const result = await searchStories(query, page);
+      setStories(result.stories);
+      setHasMore(result.hasMore);
       setSelected(0);
       setStatus('ready');
     } catch (err) {
-      failWith(err);
+      setStatus('error');
+      setError((err as Error).message);
     }
-  }
-
-  function failWith(err: unknown) {
-    setStatus('error');
-    setError((err as Error).message);
   }
 
   function openSelectedStory() {
@@ -67,15 +54,14 @@ export function StoryList({
   }
 
   useInput((input, key) => {
-    const nextFeed = mapFeedKey(input);
-    if (nextFeed) return onFeedChange(nextFeed);
-    if (input === '/') return onSearchRequested();
+    if (input === '/') return onSearchAgain();
+    if (key.escape) return onExit();
     if (input === 'j' || key.downArrow) return setSelected((s) => clampSelection(s, 1, stories.length));
     if (input === 'k' || key.upArrow) return setSelected((s) => clampSelection(s, -1, stories.length));
     if (input === 'o') return openSelectedStory();
-    if (input === ']') return setPage((p) => Math.min(p + 1, totalPages(storyIds.length) - 1));
+    if (input === ']' && hasMore) return setPage((p) => p + 1);
     if (input === '[') return setPage((p) => Math.max(p - 1, 0));
-    if (input === 'r' && status === 'error') return loadStoryIds();
+    if (input === 'r' && status === 'error') return load();
     if (key.return && stories[selected]) return onSelectStory(stories[selected]);
   });
 
@@ -85,7 +71,7 @@ export function StoryList({
   return (
     <Box flexDirection="column">
       <Text>
-        hn-bits · {feed}    page {page + 1}
+        search: {query}    page {page + 1}
       </Text>
       {stories.map((story, index) => (
         <StoryRow
@@ -96,7 +82,8 @@ export function StoryList({
         />
       ))}
       <Text dimColor>
-        j/k move · enter details · o browser · t/n/b feed · ]/[ page · / search · q quit
+        j/k move · enter details · o browser · ]/[ page · / new search · esc {from === 'tui' ? 'back' : 'quit'}{' '}
+        · q quit
       </Text>
     </Box>
   );
