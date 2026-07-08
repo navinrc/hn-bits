@@ -60,11 +60,13 @@ interface SearchHit {
 interface SearchResponse {
   hits: SearchHit[];
   nbPages: number;
+  nbHits: number;
 }
 
 export interface SearchResult {
   stories: Story[];
   hasMore: boolean;
+  totalHits: number;
 }
 
 export async function searchStories(
@@ -91,5 +93,6 @@ export async function searchStories(
         time: h.created_at_i,
       })),
     hasMore: page + 1 < res.nbPages,
+    totalHits: res.nbHits,
   };
 }

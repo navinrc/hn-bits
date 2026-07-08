@@ -8,3 +8,10 @@ export function formatAge(unixSeconds: number, now: Date = new Date()): string {
   if (delta < DAY) return `${Math.floor(delta / HOUR)}h`;
   return `${Math.floor(delta / DAY)}d`;
 }
+
+export function truncateTitle(title: string, maxWidth: number): string {
+  if (maxWidth <= 0) return '';
+  if (title.length <= maxWidth) return title;
+  if (maxWidth === 1) return '…';
+  return `${title.slice(0, maxWidth - 1)}…`;
+}
