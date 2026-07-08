@@ -1,7 +1,7 @@
 import { useState, type JSX } from 'react';
 import { useApp, useInput } from 'ink';
 import type { Feed, Story } from '../api/firebase.js';
-import { Comments } from './Comments.js';
+import { Comments, COMMENTS_HINTS } from './Comments.js';
 import { Body, Footer, Header, Screen } from './Layout.js';
 import { SearchInput } from './SearchInput.js';
 import { SearchResults } from './SearchResults.js';
@@ -36,7 +36,7 @@ export function App({ initialQuery }: AppProps): JSX.Element {
         <TabBar active={feed} />
       </Header>
       <Body>{renderView(view, { feed, setFeed, setView, exit })}</Body>
-      <Footer>{view.name === 'list' ? LIST_HINTS : null}</Footer>
+      <Footer>{view.name === 'list' ? LIST_HINTS : view.name === 'comments' ? COMMENTS_HINTS : null}</Footer>
     </Screen>
   );
 }
