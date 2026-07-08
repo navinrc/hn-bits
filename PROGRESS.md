@@ -31,6 +31,16 @@ Inspired by heartleo/hn-cli: fullscreen TUI, tab bar (5 feeds), continuous scrol
 
 V1.5 is now feature-complete against `specs/v1.5/`.
 
+## V1.6 — Visual rework (specs/v1.6/)
+
+Two-line story rows + comments view redesign (bordered cards, collapsed-by-default threads), requested against a mockup with no prior spec coverage.
+
+| Phase | Status | Notes |
+|-------|--------|-------|
+| Specs | done | specs/v1.6/01-02 committed; specs/README.md + PROGRESS.md updated |
+| 1: Story row layout | pending | matches specs/v1.6/01-story-row-layout.md |
+| 2: Comments rework | pending | matches specs/v1.6/02-comments-rework.md |
+
 ## Known gaps / follow-ups
 
-- None outstanding. Next up: V2 (local AI, Ollama) per `specs/v2/`.
+- V1.6 code not yet implemented (specs only). Next up: implement V1.6 phases 1–2, then V2 (local AI, Ollama) per `specs/v2/`.

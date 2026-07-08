@@ -8,6 +8,7 @@ Terminal-first Hacker News client (`hn` binary). Specs versioned by release; eac
 |---------|-------|--------|-------|
 | V1 | Browse + search + comments | **done** | [v1/](v1/00-overview.md) |
 | V1.5 | UI overhaul: fullscreen TUI, tabs, comment tree, theme palettes | **done** | [v1.5/](v1.5/00-overview.md) |
+| V1.6 | Visual rework: two-line story rows, bordered comments cards, collapsed-by-default threads | spec'd | [v1.6/](v1.6/01-story-row-layout.md) |
 | V2 | Local AI: summaries + Ask AI (Ollama) | spec'd | [v2/](v2/00-overview.md) |
 | V3 | Subscriptions + watcher + Telegram + SQLite + bookmarks | spec'd | [v3/](v3/00-overview.md) |
 
@@ -24,6 +25,10 @@ flowchart LR
         V --> W[continuous scroll]
         U --> X[fold/unfold comment tree]
     end
+    subgraph V16 [V1.6 — visual rework]
+        Y[two-line story rows] --> Z[bordered comments cards]
+        Z --> AA[collapsed-by-default threads]
+    end
     subgraph V2 [V2 — local AI]
         D[config file] --> E[Ollama client]
         E --> F[article + thread summaries]
@@ -36,7 +41,7 @@ flowchart LR
         K --> L[Telegram notify]
         I --> M[bookmarks]
     end
-    V1 --> V15 --> V2 --> V3
+    V1 --> V15 --> V16 --> V2 --> V3
 ```
 
 ## Ground rules (all versions)
