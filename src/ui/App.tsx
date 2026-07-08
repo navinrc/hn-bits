@@ -1,11 +1,13 @@
 import { useState, type JSX } from 'react';
-import { Box, useApp, useInput } from 'ink';
+import { Text, useApp, useInput } from 'ink';
 import type { Feed, Story } from '../api/firebase.js';
 import { Comments } from './Comments.js';
+import { Body, Footer, Header, Screen } from './Layout.js';
 import { SearchInput } from './SearchInput.js';
 import { SearchResults } from './SearchResults.js';
 import { StoryDetail } from './StoryDetail.js';
 import { StoryList } from './StoryList.js';
+import { theme } from './theme.js';
 
 type ListLikeView = { name: 'list' } | { name: 'search'; query: string; from: 'tui' | 'cli' };
 
@@ -27,10 +29,18 @@ export function App({ initialQuery }: AppProps): JSX.Element {
   const { exit } = useApp();
 
   useInput((input) => {
-    if (input === 'q') exit();
+    if (input === 'q' && view.name !== 'search-input') exit();
   });
 
-  return <Box flexDirection="column">{renderView(view, { feed, setFeed, setView, exit })}</Box>;
+  return (
+    <Screen>
+      <Header>
+        <Text color={theme.colors.title}>hn</Text>
+      </Header>
+      <Body>{renderView(view, { feed, setFeed, setView, exit })}</Body>
+      <Footer />
+    </Screen>
+  );
 }
 
 interface ViewContext {

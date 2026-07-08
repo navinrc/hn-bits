@@ -15,6 +15,19 @@ Tracks implementation phases against `specs/`. Updated after each meaningful pha
 
 V1 is now feature-complete against `specs/v1/`.
 
+## V1.5 — UI overhaul (specs/v1.5/)
+
+Inspired by heartleo/hn-cli: fullscreen TUI, tab bar (5 feeds), continuous scroll, inline fold/unfold comment tree. Sanctioned keybinding break (see specs/v1.5/06-keybindings.md).
+
+| Phase | Status | Notes |
+|-------|--------|-------|
+| Specs | done | specs/v1.5/00–07 committed; specs/README.md ground rule amended |
+| 1: Fullscreen shell | done | alt screen (TTY-only), Layout (Screen/Header/Body/Footer), theme.ts, vendored Ink test harness, `q`-in-search-input bug fix + regression test |
+| 2: Tabs + continuous list | pending | ask/show feeds, viewport.ts, StoryDetail deleted, pagination removed |
+| 3: Comment tree | pending | commentTree.ts fold ops, line-based viewport, metadata header |
+| 4: Search + help overlay | pending | StoryListView reuse, keymap.ts, `?` overlay |
+| 5: Reconcile + polish | pending | spec status, README keybindings, PR |
+
 ## Known gaps / follow-ups
 
 - Comments view renders the full top-level list with no virtualized scrolling; relies on the terminal's native scrollback for long threads. Revisit if this proves painful in practice.
