@@ -24,12 +24,11 @@ Inspired by heartleo/hn-cli: fullscreen TUI, tab bar (5 feeds), continuous scrol
 | Specs | done | specs/v1.5/00–07 committed; specs/README.md ground rule amended |
 | 1: Fullscreen shell | done | alt screen (TTY-only), Layout (Screen/Header/Body/Footer), theme.ts, vendored Ink test harness, `q`-in-search-input bug fix + regression test |
 | 2: Tabs + continuous list | done | ask/show feeds, viewport.ts (ensureVisible/visibleSlice/shouldFetchMore), TabBar in header, StoryList rewrite (continuous scroll, progressive 30-item batch fetch, request-token guard), StoryDetail deleted (enter opens comments directly), StoryRow pre-truncates title to width |
-| 3: Comment tree | pending | commentTree.ts fold ops, line-based viewport, metadata header |
+| 3: Comment tree | done | commentTree.ts (flattenTree/toggleFold/collapseAll/expandAll), viewport.ts gains wrapPlainText/ensureVisibleLines/sliceByLines for variable-height windowing, Comments.tsx rewritten as single inline fold/unfold tree with metadata header, comments.ts loses flattenSubtree (drill-in deleted) |
 | 4: Search + help overlay | pending | StoryListView reuse, keymap.ts, `?` overlay |
 | 5: Reconcile + polish | pending | spec status, README keybindings, PR |
 
 ## Known gaps / follow-ups
 
-- Comments view renders the full top-level list with no virtualized scrolling; relies on the terminal's native scrollback for long threads. Revisit if this proves painful in practice. Fold/unfold tree lands in Phase 3.
 - Search results (`SearchResults.tsx`) still use V1 `]`/`[` pagination and StoryRow width was wired in ad hoc; full rewrite onto `StoryListView`/progressive fetch is Phase 4 (specs/v1.5/05-search.md).
-- Comments header still shows only title + comment count; full metadata (points/author/age/hostname) moves there in Phase 3.
+- Comments footer hint text is embedded in `Comments.tsx`/`App.tsx` directly (mirroring `LIST_HINTS`); the shared `keymap.ts` module and `?` help overlay that drive both footer and overlay off one source land in Phase 4.
