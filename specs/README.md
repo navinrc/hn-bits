@@ -7,6 +7,7 @@ Terminal-first Hacker News client (`hn` binary). Specs versioned by release; eac
 | Version | Theme | Status | Specs |
 |---------|-------|--------|-------|
 | V1 | Browse + search + comments | **done** | [v1/](v1/00-overview.md) |
+| V1.5 | UI overhaul: fullscreen TUI, tabs, comment tree | spec'd | [v1.5/](v1.5/00-overview.md) |
 | V2 | Local AI: summaries + Ask AI (Ollama) | spec'd | [v2/](v2/00-overview.md) |
 | V3 | Subscriptions + watcher + Telegram + SQLite + bookmarks | spec'd | [v3/](v3/00-overview.md) |
 
@@ -17,6 +18,11 @@ flowchart LR
     subgraph V1 [V1 — reader]
         A[top/new/best feeds] --> B[story detail] --> C[comments]
         S[search] --> B
+    end
+    subgraph V15 [V1.5 — UI overhaul]
+        U[fullscreen shell] --> V[tab bar + ask/show]
+        V --> W[continuous scroll]
+        U --> X[fold/unfold comment tree]
     end
     subgraph V2 [V2 — local AI]
         D[config file] --> E[Ollama client]
@@ -30,7 +36,7 @@ flowchart LR
         K --> L[Telegram notify]
         I --> M[bookmarks]
     end
-    V1 --> V2 --> V3
+    V1 --> V15 --> V2 --> V3
 ```
 
 ## Ground rules (all versions)
@@ -38,4 +44,4 @@ flowchart LR
 - Personal tool, single user. Node.js ESM + TypeScript + Ink (React terminal UI). Native `fetch`.
 - Dependencies added only when a version needs them (V2: `@mozilla/readability`, `jsdom`; V3: `better-sqlite3`).
 - Config file and database appear only when first needed (config in V2, SQLite in V3). V1 is fully stateless.
-- Later-version specs may adjust V1 keybindings only by **adding** keys; existing bindings stay stable.
+- Later-version specs may adjust keybindings only by **adding** keys; existing bindings stay stable. V1.5 is a sanctioned one-time break (Enter semantics, pagination removal, StoryDetail deletion — see [v1.5/06-keybindings.md](v1.5/06-keybindings.md)); the add-only rule resumes from the V1.5 baseline.
