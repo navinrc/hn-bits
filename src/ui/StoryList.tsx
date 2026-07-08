@@ -6,12 +6,10 @@ import { clampSelection, mapFeedKey, nextFeed, previousFeed } from '../lib/listN
 import { ensureVisible, shouldFetchMore } from '../lib/viewport.js';
 import { FOOTER_ROWS, HEADER_ROWS } from './Layout.js';
 import { StoryListView } from './StoryListView.js';
+import { theme } from './theme.js';
 
 const BATCH_SIZE = 30;
 const FETCH_THRESHOLD = 10;
-
-export const LIST_HINTS =
-  'j/k move · ←/→ tab · t/n/b feed · gg/G top/bottom · enter comments · o browser · r refresh · / search · q quit';
 
 interface StoryListProps {
   feed: Feed;
@@ -114,7 +112,7 @@ export function StoryList({ feed, onFeedChange, onSelectStory, onSearchRequested
   useInput(handleInput);
 
   if (status === 'loading') return <Text>loading…</Text>;
-  if (status === 'error') return <Text color="red">{error} (r to retry)</Text>;
+  if (status === 'error') return <Text color={theme.colors.error}>{error} (r to retry)</Text>;
 
   const listHeight = loadingMore ? Math.max(1, bodyHeight - 1) : bodyHeight;
   const offset = ensureVisible(offsetRef.current, selected, listHeight, stories.length);

@@ -1,16 +1,19 @@
-import { useEffect, useState, type JSX } from 'react';
-import { Box, Text, useInput, useWindowSize } from 'ink';
+import { useEffect, useRef, useState, type JSX } from 'react';
+import { Box, Text, useInput, useWindowSize, type Key } from 'ink';
 import open from 'open';
 import { searchStories } from '../api/algolia.js';
 import { hnItemUrl, type Story } from '../api/firebase.js';
 import { clampSelection } from '../lib/listNavigation.js';
-import { StoryRow } from './StoryRow.js';
+import { ensureVisible, shouldFetchMore } from '../lib/viewport.js';
+import { FOOTER_ROWS, HEADER_ROWS } from './Layout.js';
+import { StoryListView } from './StoryListView.js';
+import { theme } from './theme.js';
 
-const PAGE_SIZE = 20;
+const FETCH_THRESHOLD = 10;
+const HEADER_LINES = 1;
 
 interface SearchResultsProps {
   query: string;
-  from: 'tui' | 'cli';
   onSelectStory: (story: Story) => void;
   onExit: () => void;
   onSearchAgain: () => void;
@@ -18,77 +21,107 @@ interface SearchResultsProps {
 
 type Status = 'loading' | 'ready' | 'error';
 
-export function SearchResults({
-  query,
-  from,
-  onSelectStory,
-  onExit,
-  onSearchAgain,
-}: SearchResultsProps): JSX.Element {
-  const { columns } = useWindowSize();
-  const [page, setPage] = useState(0);
+export function SearchResults({ query, onSelectStory, onExit, onSearchAgain }: SearchResultsProps): JSX.Element {
+  const { columns, rows } = useWindowSize();
+  const bodyHeight = Math.max(1, rows - HEADER_ROWS - FOOTER_ROWS - HEADER_LINES);
+
   const [stories, setStories] = useState<Story[]>([]);
   const [hasMore, setHasMore] = useState(false);
+  const [totalHits, setTotalHits] = useState<number | null>(null);
   const [selected, setSelected] = useState(0);
   const [status, setStatus] = useState<Status>('loading');
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
+  const token = useRef(0);
+  const nextPage = useRef(0);
+  const offsetRef = useRef(0);
 
   useEffect(() => {
-    load();
-  }, [query, page]);
+    void loadFirstPage();
+  }, [query]);
 
-  async function load() {
+  useEffect(() => {
+    const totalCount = hasMore ? Infinity : stories.length;
+    if (status === 'ready' && !loadingMore && shouldFetchMore(selected, stories.length, totalCount, FETCH_THRESHOLD)) {
+      void loadMore();
+    }
+  }, [selected, stories.length, hasMore, status, loadingMore]);
+
+  async function loadFirstPage(): Promise<void> {
+    const myToken = ++token.current;
+    nextPage.current = 0;
     setStatus('loading');
+    setSelected(0);
+    setStories([]);
+    setTotalHits(null);
     try {
-      const result = await searchStories(query, page);
+      const result = await searchStories(query, 0);
+      if (myToken !== token.current) return;
+      nextPage.current = 1;
       setStories(result.stories);
       setHasMore(result.hasMore);
-      setSelected(0);
+      setTotalHits(result.totalHits);
       setStatus('ready');
     } catch (err) {
-      setStatus('error');
-      setError((err as Error).message);
+      if (myToken === token.current) failWith(err);
     }
   }
 
-  function openSelectedStory() {
+  async function loadMore(): Promise<void> {
+    const myToken = token.current;
+    const page = nextPage.current;
+    setLoadingMore(true);
+    try {
+      const result = await searchStories(query, page);
+      if (myToken !== token.current) return;
+      nextPage.current = page + 1;
+      setStories((prev) => [...prev, ...result.stories]);
+      setHasMore(result.hasMore);
+    } catch (err) {
+      if (myToken === token.current) failWith(err);
+    } finally {
+      if (myToken === token.current) setLoadingMore(false);
+    }
+  }
+
+  function failWith(err: unknown): void {
+    setStatus('error');
+    setError((err as Error).message);
+  }
+
+  function openSelectedStory(): void {
     const story = stories[selected];
     if (story) void open(story.url ?? hnItemUrl(story.id));
   }
 
-  useInput((input, key) => {
+  function handleInput(input: string, key: Key): void {
     if (input === '/') return onSearchAgain();
     if (key.escape) return onExit();
     if (input === 'j' || key.downArrow) return setSelected((s) => clampSelection(s, 1, stories.length));
     if (input === 'k' || key.upArrow) return setSelected((s) => clampSelection(s, -1, stories.length));
+    if (input === 'G') return setSelected(Math.max(0, stories.length - 1));
     if (input === 'o') return openSelectedStory();
-    if (input === ']' && hasMore) return setPage((p) => p + 1);
-    if (input === '[') return setPage((p) => Math.max(p - 1, 0));
-    if (input === 'r' && status === 'error') return load();
+    if (input === 'r' && status === 'error') return void loadFirstPage();
     if (key.return && stories[selected]) return onSelectStory(stories[selected]);
-  });
+  }
+
+  useInput(handleInput);
 
   if (status === 'loading') return <Text>loading…</Text>;
-  if (status === 'error') return <Text color="red">{error} (r to retry)</Text>;
+  if (status === 'error') return <Text color={theme.colors.error}>{error} (r to retry)</Text>;
+
+  const listHeight = loadingMore ? Math.max(1, bodyHeight - 1) : bodyHeight;
+  const offset = ensureVisible(offsetRef.current, selected, listHeight, stories.length);
+  offsetRef.current = offset;
 
   return (
     <Box flexDirection="column">
       <Text>
-        search: {query}    page {page + 1}
+        search: {query}
+        {totalHits !== null ? `    ${totalHits} results` : ''}
       </Text>
-      {stories.map((story, index) => (
-        <StoryRow
-          key={story.id}
-          story={story}
-          rank={page * PAGE_SIZE + index + 1}
-          isSelected={index === selected}
-          width={columns}
-        />
-      ))}
-      <Text dimColor>
-        j/k move · enter comments · o browser · ]/[ page · / new search · esc {from === 'tui' ? 'back' : 'quit'}{' '}
-        · q quit
-      </Text>
+      <StoryListView stories={stories} selected={selected} offset={offset} height={listHeight} width={columns} />
+      {loadingMore && <Text dimColor>loading more…</Text>}
     </Box>
   );
 }

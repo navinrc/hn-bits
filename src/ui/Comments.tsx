@@ -21,9 +21,6 @@ interface CommentsProps {
 
 type Status = 'loading' | 'ready' | 'error';
 
-export const COMMENTS_HINTS =
-  'j/k move · space fold · C/E all · gg/G top/bottom · o browser · r reload · esc back · q quit';
-
 export function Comments({ story, onBack }: CommentsProps): JSX.Element {
   const { columns, rows } = useWindowSize();
   const viewportLines = Math.max(1, rows - HEADER_ROWS - FOOTER_ROWS - HEADER_LINES);
@@ -90,7 +87,7 @@ export function Comments({ story, onBack }: CommentsProps): JSX.Element {
   useInput(handleInput);
 
   if (status === 'loading') return <Text>loading…</Text>;
-  if (status === 'error') return <Text color="red">{error} (r to retry)</Text>;
+  if (status === 'error') return <Text color={theme.colors.error}>{error} (r to retry)</Text>;
 
   const heights = rowsData.map((row) => row.lines.length);
   const topLine = ensureVisibleLines(heights, clampedSelected, topLineRef.current, viewportLines);

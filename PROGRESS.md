@@ -25,10 +25,12 @@ Inspired by heartleo/hn-cli: fullscreen TUI, tab bar (5 feeds), continuous scrol
 | 1: Fullscreen shell | done | alt screen (TTY-only), Layout (Screen/Header/Body/Footer), theme.ts, vendored Ink test harness, `q`-in-search-input bug fix + regression test |
 | 2: Tabs + continuous list | done | ask/show feeds, viewport.ts (ensureVisible/visibleSlice/shouldFetchMore), TabBar in header, StoryList rewrite (continuous scroll, progressive 30-item batch fetch, request-token guard), StoryDetail deleted (enter opens comments directly), StoryRow pre-truncates title to width |
 | 3: Comment tree | done | commentTree.ts (flattenTree/toggleFold/collapseAll/expandAll), viewport.ts gains wrapPlainText/ensureVisibleLines/sliceByLines for variable-height windowing, Comments.tsx rewritten as single inline fold/unfold tree with metadata header, comments.ts loses flattenSubtree (drill-in deleted) |
-| 4: Search + help overlay | pending | StoryListView reuse, keymap.ts, `?` overlay |
-| 5: Reconcile + polish | pending | spec status, README keybindings, PR |
+| 4: Search + help overlay | done | `SearchResults.tsx` rewritten onto `StoryListView` + progressive fetch (Algolia `hasMore`, request-token guard, `totalHits` in header); `]`/`[` paging removed. `SearchInput` renders as a footer-line prompt (`/ query▊`), hosted by `App.tsx`. `src/ui/keymap.ts` is the single `{key,label}[]` source driving both footer hints and the new `?` `HelpOverlay.tsx`; `q`/`?` both suppressed while search input is focused. |
+| 5: Reconcile + polish | done | specs/README.md V1.5 marked done, root README rewritten (fullscreen usage + full V1.5 keymap), PR raised |
+| 6: Theme palettes | done | Ported heartleo/hn-cli's `colors.go` palettes into `theme.ts`: 6 named ansi256 themes (`hn` default, mocha, dracula, tokyo, nord, gruvbox); `resolveTheme`/`resolvePaletteName` (explicit name > `HN_THEME` env var > `hn`, unknown falls back). `StoryRow` gets color for the first time (title/score/comment/muted) and fixes the emoji-glyph spec drift from phase 1 (`⯅`/`💬` → `theme.glyphs.points`/`.comments`). `--theme <name>` CLI flag + `hn theme` info command; no persistence (config file still deferred to V2) |
+
+V1.5 is now feature-complete against `specs/v1.5/`.
 
 ## Known gaps / follow-ups
 
-- Search results (`SearchResults.tsx`) still use V1 `]`/`[` pagination and StoryRow width was wired in ad hoc; full rewrite onto `StoryListView`/progressive fetch is Phase 4 (specs/v1.5/05-search.md).
-- Comments footer hint text is embedded in `Comments.tsx`/`App.tsx` directly (mirroring `LIST_HINTS`); the shared `keymap.ts` module and `?` help overlay that drive both footer and overlay off one source land in Phase 4.
+- None outstanding. Next up: V2 (local AI, Ollama) per `specs/v2/`.
