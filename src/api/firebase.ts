@@ -1,6 +1,6 @@
 const BASE = 'https://hacker-news.firebaseio.com/v0';
 
-export type Feed = 'top' | 'new' | 'best';
+export type Feed = 'top' | 'new' | 'best' | 'ask' | 'show';
 
 export interface Story {
   id: number;
@@ -16,6 +16,8 @@ const FEED_PATHS: Record<Feed, string> = {
   top: 'topstories',
   new: 'newstories',
   best: 'beststories',
+  ask: 'askstories',
+  show: 'showstories',
 };
 
 async function getJson<T>(url: string): Promise<T> {

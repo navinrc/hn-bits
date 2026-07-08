@@ -1,10 +1,12 @@
 import { useEffect, useState, type JSX } from 'react';
-import { Box, Text, useInput } from 'ink';
+import { Box, Text, useInput, useWindowSize } from 'ink';
 import open from 'open';
 import { searchStories } from '../api/algolia.js';
 import { hnItemUrl, type Story } from '../api/firebase.js';
-import { PAGE_SIZE, clampSelection } from '../lib/listNavigation.js';
+import { clampSelection } from '../lib/listNavigation.js';
 import { StoryRow } from './StoryRow.js';
+
+const PAGE_SIZE = 20;
 
 interface SearchResultsProps {
   query: string;
@@ -23,6 +25,7 @@ export function SearchResults({
   onExit,
   onSearchAgain,
 }: SearchResultsProps): JSX.Element {
+  const { columns } = useWindowSize();
   const [page, setPage] = useState(0);
   const [stories, setStories] = useState<Story[]>([]);
   const [hasMore, setHasMore] = useState(false);
@@ -79,10 +82,11 @@ export function SearchResults({
           story={story}
           rank={page * PAGE_SIZE + index + 1}
           isSelected={index === selected}
+          width={columns}
         />
       ))}
       <Text dimColor>
-        j/k move · enter details · o browser · ]/[ page · / new search · esc {from === 'tui' ? 'back' : 'quit'}{' '}
+        j/k move · enter comments · o browser · ]/[ page · / new search · esc {from === 'tui' ? 'back' : 'quit'}{' '}
         · q quit
       </Text>
     </Box>

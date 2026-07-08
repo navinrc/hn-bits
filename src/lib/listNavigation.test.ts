@@ -1,31 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clampSelection, mapFeedKey, pageSlice, totalPages } from './listNavigation.js';
-
-describe('pageSlice', () => {
-  const ids = Array.from({ length: 30 }, (_, i) => i);
-
-  it('returns a full page from the start', () => {
-    expect(pageSlice(ids, 0, 20)).toEqual(ids.slice(0, 20));
-  });
-
-  it('returns the remaining partial page', () => {
-    expect(pageSlice(ids, 1, 20)).toEqual(ids.slice(20, 30));
-  });
-});
-
-describe('totalPages', () => {
-  it('rounds up to include a partial page', () => {
-    expect(totalPages(45, 20)).toBe(3);
-  });
-
-  it('divides evenly', () => {
-    expect(totalPages(40, 20)).toBe(2);
-  });
-
-  it('guards against zero items', () => {
-    expect(totalPages(0, 20)).toBe(1);
-  });
-});
+import { clampSelection, mapFeedKey, nextFeed, previousFeed } from './listNavigation.js';
 
 describe('clampSelection', () => {
   it('does not move above the top', () => {
@@ -51,5 +25,29 @@ describe('mapFeedKey', () => {
 
   it('returns undefined for unknown keys', () => {
     expect(mapFeedKey('x')).toBeUndefined();
+  });
+});
+
+describe('nextFeed', () => {
+  it('advances through the tab order', () => {
+    expect(nextFeed('top')).toBe('new');
+    expect(nextFeed('new')).toBe('best');
+    expect(nextFeed('best')).toBe('ask');
+    expect(nextFeed('ask')).toBe('show');
+  });
+
+  it('wraps from the last tab to the first', () => {
+    expect(nextFeed('show')).toBe('top');
+  });
+});
+
+describe('previousFeed', () => {
+  it('moves back through the tab order', () => {
+    expect(previousFeed('show')).toBe('ask');
+    expect(previousFeed('ask')).toBe('best');
+  });
+
+  it('wraps from the first tab to the last', () => {
+    expect(previousFeed('top')).toBe('show');
   });
 });

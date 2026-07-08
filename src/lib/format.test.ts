@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatAge } from './format.js';
+import { formatAge, truncateTitle } from './format.js';
 
 const NOW = new Date('2026-07-07T12:00:00Z');
 
@@ -27,5 +27,23 @@ describe('formatAge', () => {
 
   it('shows days beyond a day', () => {
     expect(formatAge(secondsAgo(2 * 86400), NOW)).toBe('2d');
+  });
+});
+
+describe('truncateTitle', () => {
+  it('returns the title unchanged when it fits', () => {
+    expect(truncateTitle('short title', 20)).toBe('short title');
+  });
+
+  it('truncates with an ellipsis when too long', () => {
+    expect(truncateTitle('a very long story title indeed', 10)).toBe('a very lo…');
+  });
+
+  it('returns just an ellipsis when there is only room for one character', () => {
+    expect(truncateTitle('anything', 1)).toBe('…');
+  });
+
+  it('returns an empty string when there is no room at all', () => {
+    expect(truncateTitle('anything', 0)).toBe('');
   });
 });
