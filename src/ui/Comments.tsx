@@ -87,7 +87,7 @@ export function Comments({ story, onBack }: CommentsProps): JSX.Element {
   useInput(handleInput);
 
   if (status === 'loading') return <Text>loading…</Text>;
-  if (status === 'error') return <Text color="red">{error} (r to retry)</Text>;
+  if (status === 'error') return <Text color={theme.colors.error}>{error} (r to retry)</Text>;
 
   const heights = rowsData.map((row) => row.lines.length);
   const topLine = ensureVisibleLines(heights, clampedSelected, topLineRef.current, viewportLines);

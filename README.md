@@ -15,9 +15,15 @@ npm link   # exposes the `hn` binary
 ```bash
 hn                  # fullscreen shell: tab bar (top/new/best/ask/show), continuous scroll
 hn search <query...>  # jump straight into search results
+hn theme            # show the active color theme and available palettes
+hn --theme dracula  # or: HN_THEME=dracula hn
 ```
 
 Press `?` from any view for the full keybinding help overlay.
+
+### Themes
+
+`hn`, `mocha`, `dracula`, `tokyo`, `nord`, `gruvbox` (default: `hn`, HN-orange). Pick with `--theme <name>` or the `HN_THEME` env var — not persisted (no config file yet).
 
 ### Keybindings
 

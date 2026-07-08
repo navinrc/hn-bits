@@ -52,7 +52,7 @@ interface FooterProps {
 export function Footer({ children }: FooterProps): JSX.Element {
   return (
     <Box flexShrink={0}>
-      <Text color={theme.colors.dim}>{children}</Text>
+      <Text color={theme.colors.muted}>{children}</Text>
     </Box>
   );
 }
