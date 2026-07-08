@@ -10,9 +10,6 @@ import { StoryListView } from './StoryListView.js';
 const BATCH_SIZE = 30;
 const FETCH_THRESHOLD = 10;
 
-export const LIST_HINTS =
-  'j/k move · ←/→ tab · t/n/b feed · gg/G top/bottom · enter comments · o browser · r refresh · / search · q quit';
-
 interface StoryListProps {
   feed: Feed;
   onFeedChange: (feed: Feed) => void;

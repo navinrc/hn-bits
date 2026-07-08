@@ -20,5 +20,5 @@ export function SearchInput({ onSubmit, onCancel }: SearchInputProps): JSX.Eleme
     if (query.trim()) onSubmit(query.trim());
   }
 
-  return <Text>/ {query}</Text>;
+  return <Text>/ {query}▊</Text>;
 }
