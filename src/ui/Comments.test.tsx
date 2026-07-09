@@ -119,6 +119,65 @@ describe('Comments', () => {
     instance.unmount();
   });
 
+  it('toggles a C-originated leaf back to header-only on a second space', async () => {
+    const { instance } = renderComments();
+    await instance.waitUntilRenderFlush();
+
+    instance.stdin.writeInput('C');
+    await instance.waitUntilRenderFlush();
+    instance.stdin.writeInput('j');
+    await instance.waitUntilRenderFlush();
+    instance.stdin.writeInput(' ');
+    await instance.waitUntilRenderFlush();
+
+    expect(instance.lastFrame()).toContain('another top level');
+
+    instance.stdin.writeInput(' ');
+    await instance.waitUntilRenderFlush();
+
+    const frame = instance.lastFrame();
+    expect(frame).not.toContain('another top level');
+    expect(frame).toContain('dave');
+
+    instance.unmount();
+  });
+
+  it('keeps space a no-op on a leaf that never entered header-only', async () => {
+    const { instance } = renderComments();
+    await instance.waitUntilRenderFlush();
+
+    instance.stdin.writeInput('j');
+    await instance.waitUntilRenderFlush();
+    instance.stdin.writeInput(' ');
+    await instance.waitUntilRenderFlush();
+
+    expect(instance.lastFrame()).toContain('another top level');
+
+    instance.unmount();
+  });
+
+  // A selected-row line whose painted content (indent + bar + text + padding) exactly
+  // fills the terminal width triggers a VT100 delayed-wrap that drops the selection
+  // bar/stripe from the following line — confirmed live under tmux.
+  it('never lets a selected row line reach the literal terminal width', async () => {
+    fetchComments.mockResolvedValue([
+      { id: 20, author: 'erin', text: 'y'.repeat(300), time: now, children: [] },
+    ]);
+    const { instance } = renderComments();
+    await instance.waitUntilRenderFlush();
+
+    const selectedLines = instance
+      .lastFrame()
+      .split('\n')
+      .filter((line) => line.trimStart().startsWith('│') && line.includes('y'.repeat(20)));
+    expect(selectedLines.length).toBeGreaterThan(1);
+    for (const line of selectedLines) {
+      expect(line.length, JSON.stringify(line)).toBeLessThan(80);
+    }
+
+    instance.unmount();
+  });
+
   it('resets to the default collapsed state on E after C', async () => {
     const { instance } = renderComments();
     await instance.waitUntilRenderFlush();
