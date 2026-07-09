@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { CommentNode } from '../api/algolia.js';
-import { collapseAll, flattenTree, headerOnlyAll, revealHeaderOnly, toggleFold } from './commentTree.js';
+import {
+  collapseAll,
+  flattenTree,
+  headerOnlyAll,
+  rehideRevealed,
+  revealHeaderOnly,
+  toggleFold,
+} from './commentTree.js';
 
 function node(id: number, children: CommentNode[] = []): CommentNode {
   return { id, author: `user${id}`, text: `text${id}`, time: 0, children };
@@ -54,18 +61,45 @@ describe('toggleFold', () => {
 });
 
 describe('revealHeaderOnly', () => {
-  it('removes the given id', () => {
-    expect([...revealHeaderOnly(new Set([1, 2]), 1)]).toEqual([2]);
+  it('moves the id from header-only into revealed', () => {
+    const next = revealHeaderOnly({ headerOnly: new Set([1, 2]), revealed: new Set() }, 1);
+    expect([...next.headerOnly]).toEqual([2]);
+    expect([...next.revealed]).toEqual([1]);
   });
 
-  it('is a no-op when the id is absent', () => {
-    expect([...revealHeaderOnly(new Set([2]), 1)]).toEqual([2]);
+  it('still tracks the id as revealed when it was absent from header-only', () => {
+    const next = revealHeaderOnly({ headerOnly: new Set([2]), revealed: new Set() }, 1);
+    expect([...next.headerOnly]).toEqual([2]);
+    expect([...next.revealed]).toEqual([1]);
   });
 
-  it('does not mutate the input set', () => {
-    const headerOnly = new Set([1]);
-    revealHeaderOnly(headerOnly, 1);
-    expect([...headerOnly]).toEqual([1]);
+  it('does not mutate the input sets', () => {
+    const state = { headerOnly: new Set([1]), revealed: new Set<number>() };
+    revealHeaderOnly(state, 1);
+    expect([...state.headerOnly]).toEqual([1]);
+    expect([...state.revealed]).toEqual([]);
+  });
+});
+
+describe('rehideRevealed', () => {
+  it('moves the id from revealed back into header-only', () => {
+    const next = rehideRevealed({ headerOnly: new Set(), revealed: new Set([1, 2]) }, 1);
+    expect([...next.headerOnly]).toEqual([1]);
+    expect([...next.revealed]).toEqual([2]);
+  });
+
+  it('round-trips with revealHeaderOnly', () => {
+    const start = { headerOnly: new Set([1]), revealed: new Set<number>() };
+    const next = rehideRevealed(revealHeaderOnly(start, 1), 1);
+    expect([...next.headerOnly]).toEqual([1]);
+    expect([...next.revealed]).toEqual([]);
+  });
+
+  it('does not mutate the input sets', () => {
+    const state = { headerOnly: new Set<number>(), revealed: new Set([1]) };
+    rehideRevealed(state, 1);
+    expect([...state.headerOnly]).toEqual([]);
+    expect([...state.revealed]).toEqual([1]);
   });
 });
 

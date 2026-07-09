@@ -46,11 +46,23 @@ export function toggleFold(folded: ReadonlySet<number>, id: number): Set<number>
   return next;
 }
 
-/** Removes a node from the header-only set; never re-adds (opening a header-only row is one-way). */
-export function revealHeaderOnly(headerOnly: ReadonlySet<number>, id: number): Set<number> {
-  const next = new Set(headerOnly);
-  next.delete(id);
-  return next;
+export interface RevealState {
+  headerOnly: ReadonlySet<number>;
+  revealed: ReadonlySet<number>;
+}
+
+/** Moves an id from header-only into revealed, so C-originated leaves can toggle back. */
+export function revealHeaderOnly(state: RevealState, id: number): RevealState {
+  const headerOnly = new Set(state.headerOnly);
+  headerOnly.delete(id);
+  return { headerOnly, revealed: new Set(state.revealed).add(id) };
+}
+
+/** Moves a revealed id back to header-only — the leaf half of the header ↔ body toggle. */
+export function rehideRevealed(state: RevealState, id: number): RevealState {
+  const revealed = new Set(state.revealed);
+  revealed.delete(id);
+  return { headerOnly: new Set(state.headerOnly).add(id), revealed };
 }
 
 /** Every id that has children — the default/collapsed fold set (body shown, children hidden). */

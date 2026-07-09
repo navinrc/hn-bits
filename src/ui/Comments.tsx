@@ -7,9 +7,11 @@ import {
   collapseAll,
   flattenTree,
   headerOnlyAll,
+  rehideRevealed,
   revealHeaderOnly,
   toggleFold,
   type FlatComment,
+  type RevealState,
 } from '../lib/commentTree.js';
 import { tokenizeContacts, type TextToken } from '../lib/contactHighlight.js';
 import { formatAge } from '../lib/format.js';
@@ -51,14 +53,15 @@ export function Comments({ story, onBack }: CommentsProps): JSX.Element {
   const [status, setStatus] = useState<Status>('loading');
   const [error, setError] = useState('');
   const [comments, setComments] = useState<CommentNode[]>([]);
-  const [fold, setFold] = useState<{ folded: ReadonlySet<number>; headerOnly: ReadonlySet<number> }>({
+  const [fold, setFold] = useState<{ folded: ReadonlySet<number> } & RevealState>({
     folded: new Set(),
     headerOnly: new Set(),
+    revealed: new Set(),
   });
   const [selected, setSelected] = useState(0);
   const pendingTopJump = useRef(false);
   const topLineRef = useRef(0);
-  const { folded, headerOnly } = fold;
+  const { folded, headerOnly, revealed } = fold;
 
   useEffect(() => {
     void load();
@@ -69,7 +72,7 @@ export function Comments({ story, onBack }: CommentsProps): JSX.Element {
     try {
       const tree = await fetchComments(story.id);
       setComments(tree);
-      setFold({ folded: collapseAll(tree), headerOnly: new Set() });
+      setFold({ folded: collapseAll(tree), headerOnly: new Set(), revealed: new Set() });
       setSelected(0);
       setStatus('ready');
     } catch (err) {
@@ -89,19 +92,23 @@ export function Comments({ story, onBack }: CommentsProps): JSX.Element {
   function toggleSelected(): void {
     const row = flat[clampedSelected];
     if (!row) return;
+    const id = row.node.id;
     if (row.headerOnly) {
-      return setFold((f) => ({ ...f, headerOnly: revealHeaderOnly(f.headerOnly, row.node.id) }));
+      return setFold((f) => ({ ...f, ...revealHeaderOnly(f, id) }));
     }
-    if (row.node.children.length === 0) return;
-    setFold((f) => ({ ...f, folded: toggleFold(f.folded, row.node.id) }));
+    if (row.node.children.length === 0) {
+      if (revealed.has(id)) setFold((f) => ({ ...f, ...rehideRevealed(f, id) }));
+      return;
+    }
+    setFold((f) => ({ ...f, folded: toggleFold(f.folded, id) }));
   }
 
   function collapseEverything(): void {
-    setFold((f) => ({ ...f, headerOnly: headerOnlyAll(comments) }));
+    setFold((f) => ({ ...f, headerOnly: headerOnlyAll(comments), revealed: new Set() }));
   }
 
   function resetFold(): void {
-    setFold({ folded: collapseAll(comments), headerOnly: new Set() });
+    setFold({ folded: collapseAll(comments), headerOnly: new Set(), revealed: new Set() });
   }
 
   function handleInput(input: string, key: Key): void {
@@ -215,8 +222,10 @@ function tokenToSpan(token: TextToken): Span {
 }
 
 function buildRow(entry: FlatComment, columns: number): CommentRow {
-  // Reserve 2 columns for the selection bar so wrapping doesn't shift when selection moves.
-  const width = Math.max(1, columns - entry.depth * 2 - ROW_BORDER_WIDTH);
+  // Reserve 2 columns for the selection bar so wrapping doesn't shift when selection moves,
+  // plus 1 trailing column: a line that exactly fills the terminal width triggers a VT100
+  // delayed-wrap that drops the selection bar/stripe from the following line.
+  const width = Math.max(1, columns - 1 - entry.depth * 2 - ROW_BORDER_WIDTH);
   const header: RenderLine = { kind: 'header', spans: buildHeaderSpans(entry) };
   const body: RenderLine[] = entry.headerOnly
     ? []

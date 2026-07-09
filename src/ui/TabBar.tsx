@@ -97,7 +97,9 @@ function buildTopBorderSegments(columns: number, wallColumn: number, innerWidth:
 
 function buildBottomRuleSegments(columns: number, wallColumn: number, innerWidth: number): Segment[] {
   const notch = `╯${' '.repeat(innerWidth)}╰`;
-  return splitAccent('─'.repeat(columns), wallColumn, notch);
+  const base = '─'.repeat(columns);
+  const line = base.slice(0, wallColumn) + notch + base.slice(wallColumn + notch.length);
+  return [{ text: line, color: 'accent' }];
 }
 
 function segmentColor(color: SegmentColor): string {
