@@ -82,7 +82,7 @@ describe('StoryList', () => {
 
     const frame = instance.lastFrame();
     expect(frame).toContain('Story 16');
-    expect(frame.match(/Story \d+/g)?.length).toBe(6);
+    expect(frame.match(/Story \d+/g)?.length).toBe(5);
 
     instance.unmount();
   });
