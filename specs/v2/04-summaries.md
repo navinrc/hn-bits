@@ -2,15 +2,17 @@
 
 `s` key, context-dependent:
 
-- **StoryDetail** → **article summary** (extracted page text).
+- **Story list** (feeds + search results, selected row) → **article summary** (extracted page text).
 - **Comments** → **thread summary** (trimmed comment tree).
+
+Text posts (Ask HN etc., no `story.url`) from the list: summarize the post's own `text` (additive `Story.text?` field); if that's empty too, fetch the thread (`fetchComments`) and thread-summarize with a notice.
 
 Both stream into the same panel component overlaying the lower half of the view.
 
 ## Layout
 
 ```text
- ┌ story detail or comments view (top, unchanged) ────────────┐
+ ┌ story list or comments view (top, unchanged) ──────────────┐
  │ …                                                          │
  ├─ summary · llama3.2 ────────────────────────────────────────┤
  │ The article announces PostgreSQL 18, focusing on…          │
@@ -34,14 +36,14 @@ sequenceDiagram
     participant AR as lib/article.ts
     participant AI as ai/ollama.ts
 
-    U->>P: s (in StoryDetail)
+    U->>P: s (in story list)
     P->>P: no config? render setup hint, stop
     P->>AR: extractArticle(story.url)
     alt extraction ok
         AR-->>P: Article (maybe truncated)
-    else ExtractionError
+    else no url / ExtractionError
         AR-->>P: error
-        P->>P: switch to thread summary + notice
+        P->>P: story.text? summarize it : fetch thread, thread summary — either way + notice
     end
     P->>AI: chatStream(cfg, [system, user])
     loop NDJSON deltas
@@ -100,6 +102,8 @@ buildThreadContext(comments: CommentNode[]): { text: string; includedTopLevel: n
 | `s` | regenerate (abort current, restart) |
 | `j` / `k` | scroll panel content |
 | `q` | quit app (aborts stream) |
+
+`s` is added to `LIST_KEYS`, `SEARCH_RESULTS_KEYS`, and `COMMENTS_KEYS` in `src/ui/keymap.ts` (footer + `?` overlay update for free).
 
 ## Errors
 

@@ -1,16 +1,18 @@
 # V2 — Local AI (Ollama)
 
-Adds local-AI reading aids on top of the V1 reader: **summaries** (article and comment thread) and **Ask AI** (interactive Q&A grounded in the story + thread). Everything runs against a local Ollama instance — no cloud calls, no API keys.
+Adds local-AI reading aids on top of the V1.6 reader: **summaries** (article and comment thread) and **Ask AI** (interactive Q&A grounded in the story + thread). Everything runs against a local Ollama instance — no cloud calls, no API keys.
 
-Prerequisite: V1 complete ([../v1/00-overview.md](../v1/00-overview.md)).
+Prerequisite: V1.6 complete ([../v1.5/00-overview.md](../v1.5/00-overview.md), [../v1.6/01-story-row-layout.md](../v1.6/01-story-row-layout.md)). Baseline notes: StoryDetail was removed in V1.5 — the views are story list (tabs + search) and Comments; all keybindings live in `src/ui/keymap.ts`, which drives both the footer hints and the `?` help overlay.
 
 ## V2 scope
 
 1. **Config file** — first persistent artifact: `~/.config/hn-bits/config.json` (Ollama endpoint + model). App works fully without it; AI features degrade to a setup hint.
 2. **Ollama client** — `src/ai/ollama.ts`: streaming chat, health check, clear error taxonomy.
 3. **Article extraction** — `src/lib/article.ts`: fetch story URL, Readability, plain text with fallbacks.
-4. **Summaries** — `s` in StoryDetail (article) and in Comments (thread), streamed into a panel.
-5. **Ask AI** — `a` opens a chat view with story + article + thread as context, multi-turn within the session.
+4. **Summaries** — `s` in the story list (article; text posts fall back to post text, then thread) and in Comments (thread), streamed into a panel.
+5. **Ask AI** — `a` from the story list or Comments opens a chat view with story + article + thread as context, multi-turn within the session. From the list the thread is fetched on demand.
+
+New keys extend `src/ui/keymap.ts` (`LIST_KEYS`, `COMMENTS_KEYS`, `SEARCH_RESULTS_KEYS`) so footer hints and the `?` overlay stay in sync.
 
 ## Out of V2
 
@@ -43,7 +45,8 @@ flowchart TD
 ```text
 src/
 ├── ai/
-│   └── ollama.ts      # chat streaming, health check, errors
+│   ├── ollama.ts      # chat streaming, health check, errors
+│   └── context.ts     # thread trimming + Ask AI context assembly
 ├── lib/
 │   ├── article.ts     # fetch + Readability → plain text
 │   └── config.ts      # load/validate config file
@@ -51,6 +54,8 @@ src/
     ├── SummaryPanel.tsx
     └── AskAI.tsx
 ```
+
+Existing-code touch points: `src/api/firebase.ts` `Story` gains optional `text?: string` (text-post body, needed for the list `s` fallback); `src/ui/keymap.ts` gains the `s`/`a` bindings.
 
 ## Spec index
 

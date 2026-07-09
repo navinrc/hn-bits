@@ -4,38 +4,43 @@ Save stories for later. Snapshot-based: bookmark stores story fields at save tim
 
 ## Toggling — `B` key (capital; lowercase `b` = best feed / back)
 
-Available in **StoryList** (feeds + search results) and **StoryDetail**:
+Available in the **story list** (feeds + search results, selected row) and in **Comments** (the open story):
 
 | Key | Where | Action |
 |-----|-------|--------|
-| `B` | list row selected / detail view | `toggleBookmark(story)`; footer flash `bookmarked ✓` / `bookmark removed` (1.5 s) |
+| `B` | list row selected / comments open | `toggleBookmark(story)`; footer flash `bookmarked ✓` / `bookmark removed` (1.5 s) |
 
-- Bookmarked stories show a `★` marker in list rows (before title) and in the detail metadata line.
+- Bookmarked stories show a `★` prefix on the **meta line** of the story row (`StoryRow`), before the score: `★ 980 points by author 34d ago | 512 comments`. Title line, rank alignment, and selection highlight untouched.
 - Re-bookmarking an existing bookmark removes it (toggle). Toggling refreshes nothing else — no confirm.
+- `B` joins `LIST_KEYS`, `SEARCH_RESULTS_KEYS`, and `COMMENTS_KEYS` in `src/ui/keymap.ts` (footer + `?` overlay update for free).
 
-## Listing — `hn bookmarks`
+## Listing — the `saved` tab
 
-```bash
-hn bookmarks
-```
-
-Opens the TUI in bookmarks view — **StoryList component reused** (like search results), data source = `listBookmarks()`, newest bookmarked first.
+Bookmarks are a 6th tab in the `TabBar`: `Top New Best Ask Show Saved`. Reached like any tab (`←/→`); `hn bookmarks` opens the TUI with the saved tab active.
 
 ```text
- hn-bits · bookmarks                              12 saved
- ▸ ★ 1. Postgres 18 released                980⯅ 512💬 34d  author
-   ★ 2. Show HN: I built a thing            412⯅ 213💬 60d  author
+                                                 ╭───────╮
+  Hacker News   Top   New   Best   Ask   Show    │ Saved │        ? help
+─────────────────────────────────────────────────╯       ╰──────────────
 
- j/k move · enter open · o browser · B remove · esc quit · q quit
+  ❯  1. Postgres 18 released (postgresql.org)
+        ★ 980 points by author 34d ago | 512 comments
+
+     2. Show HN: I built a thing (example.com)
+        ★ 412 points by author 60d ago | 213 comments
+
+ j/k move · ←/→ tab · … · q quit · ? help          ← keymap.ts-generated
 ```
 
-Differences from feed list:
+Differences from feed tabs:
 
-- No pagination needed below 20; above 20 reuse `]`/`[` paging over the local array (no network).
-- Feed keys (`t`/`n`/`b`) inactive; `/` inactive (no search over bookmarks in V3).
-- `B` removes the selected bookmark, row disappears immediately.
-- `enter` → StoryDetail → Comments work as normal (comments fetched live by story id; score/comment counts shown are the stored snapshot — staleness accepted, noted in footer? No — silently accepted).
-- Age column shows story age (from snapshot `time`), matching other lists.
+- Data source = `listBookmarks()` (local, newest bookmarked first) instead of a Firebase feed — no network, no progressive fetch. Reuses **`StoryListView`** (the presentational windowed list, same as search results), not the `StoryList` fetch container. Continuous-scroll windowing as everywhere; no paging.
+- `TabBar`'s `active` prop widens from `Feed` to `Feed | 'saved'` (`TABS` gains the entry; the notch math is width-driven and needs no change).
+- `t`/`n`/`b` jump to their feeds as usual; `/` stays global Algolia search (no search *over* bookmarks in V3). `r` re-reads `listBookmarks()`.
+- `B` removes the selected bookmark; row disappears immediately.
+- `enter` opens Comments as normal (fetched live by story id; score/comment counts shown are the stored snapshot — staleness silently accepted).
+- Age shows story age (from snapshot `time`), matching other lists.
+- Empty state: `no bookmarks yet — press B on a story` (centered, muted), same slot as a feed's loading indicator.
 
 ## Non-goals (V3)
 
