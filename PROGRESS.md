@@ -47,8 +47,10 @@ Two-line story rows + comments view redesign (bordered cards, collapsed-by-defau
 | Bugfix: selected-row content reaching exact terminal width corrupts the row below | done | title/hostname (or, for short titles, the selection-highlight padding) could sum to exactly the terminal width; that triggers a VT100 delayed-wrap that Ink's cursor math doesn't account for, silently dropping the next row's background paint. Fixed by reserving 1 trailing column (`safeWidth = width - 1`) for both truncation and padding math in `StoryRow`. Root-caused via `tmux capture-pane -e` byte-level diffing across ~20 isolated repros (ruled out glyph unicode-width, rerender/diffing races, and rank-width churn before isolating it to exact-width-fill); regression test in `StoryRow.test.tsx` (verified red without the fix, green with it) |
 | 6: Loading indicator | done | matches specs/v1.6/05-loading-indicator.md; new shared `LoadingIndicator.tsx` (braille spinner, 80ms/frame, `useState`+`useEffect` interval, cleaned up on unmount) replaces the bare `loading…` text in `StoryList`, `Comments`, `SearchResults` with per-call-site labels ("Loading stories...", "Loading comments...", "Searching..."); `loading more…` footer line left as plain text per spec. Verified live via tmux (spinner glyph + label visible on cold start and on opening comments) |
 
-V1.6 is now feature-complete against `specs/v1.6/`.
+| Phase 7 spec (comments polish) | spec'd | specs/v1.6/06-comments-polish.md committed: tab-notch color consistency, comment header colors + inline `[N more]`/`N replies` badge, header-only fold state with C/E rework (full-tree expand removed), URL/email highlighting (shared `link`/`email` semantic colors), selection left-bar + background stripe. Grilled via /grill-me 2026-07-09; implementation pending |
 
 ## Known gaps / follow-ups
+
+- V1.6 phase 7 implementation (specs/v1.6/06-comments-polish.md).
 
 - Then V2 (local AI, Ollama) per `specs/v2/`.
