@@ -169,7 +169,7 @@ describe('Comments', () => {
     const selectedLines = instance
       .lastFrame()
       .split('\n')
-      .filter((line) => line.trimStart().startsWith('▌'));
+      .filter((line) => line.trimStart().startsWith('│') && line.includes('y'.repeat(20)));
     expect(selectedLines.length).toBeGreaterThan(1);
     for (const line of selectedLines) {
       expect(line.length, JSON.stringify(line)).toBeLessThan(80);

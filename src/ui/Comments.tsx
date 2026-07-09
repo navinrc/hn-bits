@@ -27,7 +27,7 @@ const HEADER_BORDER_LINES = 2;
 // borderStyle (2 cols) + paddingX (2 cols) eaten from the card's interior width.
 const HEADER_FRAME_WIDTH = 4;
 const ROW_BORDER_WIDTH = 2;
-const SELECTION_BAR = '▌';
+const SELECTION_BAR = '│';
 
 // Long titles/URLs word-wrap inside the bordered card; undercounting that height
 // shrinks the comment viewport too little and overflows the terminal (corrupts the frame).
