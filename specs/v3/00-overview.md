@@ -2,7 +2,7 @@
 
 Turns the reader into the "radar" from the original concept: subscribe to topics, a cron-driven one-shot watcher finds new matching stories, Telegram delivers them. SQLite arrives as the first database (subscriptions, dedup, bookmarks).
 
-Prerequisites: V1 complete; V2 config file exists ([../v2/01-config.md](../v2/01-config.md)) — V3 extends the same file.
+Prerequisites: V1.6 complete; V2 config file exists ([../v2/01-config.md](../v2/01-config.md)) — V3 extends the same file.
 
 ## V3 scope
 
@@ -10,7 +10,7 @@ Prerequisites: V1 complete; V2 config file exists ([../v2/01-config.md](../v2/01
 2. **Subscriptions** — named topic queries (Algolia query + min-points), CRUD via `hn sub` CLI.
 3. **Watcher** — `hn watch --once`: query each subscription, dedup, notify, exit. Scheduled by the OS (cron/launchd), not a daemon.
 4. **Telegram notifications** — bot API `sendMessage`; notifier interface keeps Discord addable later.
-5. **Bookmarks** — `B` toggles bookmark on a story; `hn bookmarks` lists them in the TUI.
+5. **Bookmarks** — `B` toggles bookmark on a story; a 6th **saved** tab lists them; `hn bookmarks` opens the TUI on that tab.
 
 ## Out of V3
 

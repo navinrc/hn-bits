@@ -1,6 +1,6 @@
 # Ask AI (`src/ui/AskAI.tsx`)
 
-`a` from **StoryDetail** or **Comments** opens a full-screen chat grounded in the story. Multi-turn within the session; nothing persists after leaving the view.
+`a` from the **story list** (feeds + search results, selected row) or **Comments** opens a full-screen chat grounded in the story. Multi-turn within the session; nothing persists after leaving the view.
 
 ## Layout
 
@@ -35,7 +35,7 @@ stateDiagram-v2
     idle --> [*] : esc (leave view, history discarded)
 ```
 
-`esc` is contextual: streaming → abort only; idle → leave the view. Leaving returns to whichever view (`detail` or `comments`) launched it.
+`esc` is contextual: streaming → abort only; idle → leave the view. Leaving returns to whichever view (`list`, `search`, or `comments`) launched it.
 
 ## Context assembly (`src/ai/context.ts`)
 
@@ -56,7 +56,7 @@ system:
 ```
 
 - **Article:** `extractArticle` attempted on open (spinner in header while fetching); failure degrades to `unavailable` — chat still works.
-- **Thread:** if launched from Comments, tree already in memory. If launched from StoryDetail, fetch it (`fetchComments`) in the same opening phase — Q&A about discussion is the main use case, so always include it.
+- **Thread:** if launched from Comments, tree already in memory. If launched from the list, fetch it (`fetchComments`) in the same opening phase — Q&A about discussion is the main use case, so always include it.
 - Same 16k article / 12k thread budgets as summaries ([04-summaries.md](04-summaries.md)).
 
 Message list sent per turn: `[system+context, ...history turns, new user message]`. History grows unbounded within the session — acceptable; long chats may exceed model context, Ollama truncates from the front (known trade-off, noted, not mitigated in V2).
@@ -73,6 +73,8 @@ Message list sent per turn: `[system+context, ...history turns, new user message
 | `ctrl+c` | any | quit app |
 
 Note: inside this view letters go to the input, so global `q`-to-quit doesn't apply — `ctrl+c` (Ink default) quits.
+
+`a` is added to `LIST_KEYS`, `SEARCH_RESULTS_KEYS`, and `COMMENTS_KEYS` in `src/ui/keymap.ts`.
 
 ## Errors
 

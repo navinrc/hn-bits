@@ -50,6 +50,16 @@ Two-line story rows + comments view redesign (bordered cards, collapsed-by-defau
 | 7: Comments polish | done | matches specs/v1.6/06-comments-polish.md; `TabBar` notch (`╭─╮`/`│` walls/`╯╰`) renders fully in `accent`, rest stays `dimColor`; `commentTree.ts` gains a second `headerOnly: Set<id>` alongside `folded`, `flattenTree` takes both, `collapseAll`/`headerOnlyAll` replace `expandAll` (`C` → header-only every node, `E` → reset to default collapsed, space/enter reveals a header-only row without touching its children's state); comment rows render as accent-glyph/bold-author/muted-age/muted-badge spans with an inline `[N more]`/`N replies` badge (`theme.ts` unaffected — colors are per-span, not new theme keys); new `src/lib/contactHighlight.ts` (`tokenizeContacts`) colors bare URLs/emails found by `htmlToText` using two new shared theme colors (`link`/`email`); selection is now an accent `▌` bar + `selectionBackground` stripe (bordered-card selection from phase 2 removed) |
 | Bugfix: long story URL corrupts the comments frame on load | done | `Comments.tsx`'s `headerLines` constant assumed the bordered header card is always 3 interior lines, but a URL longer than the card's interior width word-wraps to 2 lines; undercounting that let `viewportLines` render one comment row too many, overflowing the terminal and triggering a real-TTY auto-scroll that desyncs Ink's cursor-relative redraw (title row and the first comment's header line got overwritten/dropped — invisible in the `ink-testing-library` harness since `FakeStdout` doesn't emulate real cursor movement, only reproduced live via `tmux capture-pane -e` on a story with a long URL). Replaced the hardcoded constant with `commentsHeaderLines()`, which wraps the title and url through `wrapPlainText` at the card's actual interior width. Regression test in `Comments.headerLines.test.ts` (verified red against the old hardcoded formula, green with the fix); confirmed live via tmux at 80/100/140 columns. |
 
+## Spec reconciliation — v2/v3 vs shipped v1.6 (2026-07-09)
+
+v2/v3 specs were written against original V1, before v1.5/v1.6 shipped. Audit found data-layer contracts (`Story`, `CommentNode`, `fetchComments`, `lib/html.ts`) intact, UI anchors stale. Both spec sets rewritten to the v1.6 baseline:
+
+| Change | Where |
+|--------|-------|
+| `s` summary + `a` Ask AI relocated off deleted StoryDetail: `s` in list = article (text posts: post `text`, else thread fetch + notice), `s` in comments = thread; `a` from list (fetches thread on demand) or comments | v2/00, 04, 05 |
+| `ai/context.ts` added to module tree; `Story.text?` + `keymap.ts` touch points noted | v2/00 |
+| Bookmarks: 6th `Saved` tab in TabBar (`hn bookmarks` opens on it), reuses `StoryListView` + continuous scroll (paging refs deleted), `★` moves to meta line, `B` in list + comments, mockup redrawn to 3-line rows / notch header / keymap footer | v3/00, 05 |
+
 ## Known gaps / follow-ups
 
 - V1.6 is now feature-complete against `specs/v1.6/`.
