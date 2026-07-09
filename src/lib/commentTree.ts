@@ -5,19 +5,38 @@ export interface FlatComment {
   node: CommentNode;
   depth: number;
   descendantCount: number;
-  isFolded: boolean;
+  /** Children not rendered — set by folding this node or by header-only state. */
+  childrenHidden: boolean;
+  /** Own body not rendered — row is just the header line. */
+  headerOnly: boolean;
 }
 
-/** Depth-first flatten; children of folded ids are skipped. */
-export function flattenTree(nodes: CommentNode[], folded: ReadonlySet<number>): FlatComment[] {
-  return nodes.flatMap((node) => flattenNode(node, 0, folded));
+/** Depth-first flatten; children are skipped when a node is folded or header-only. */
+export function flattenTree(
+  nodes: CommentNode[],
+  folded: ReadonlySet<number>,
+  headerOnly: ReadonlySet<number>,
+): FlatComment[] {
+  return nodes.flatMap((node) => flattenNode(node, 0, folded, headerOnly));
 }
 
-function flattenNode(node: CommentNode, depth: number, folded: ReadonlySet<number>): FlatComment[] {
-  const isFolded = folded.has(node.id);
-  const entry: FlatComment = { node, depth, descendantCount: countDescendants(node), isFolded };
-  if (isFolded) return [entry];
-  return [entry, ...node.children.flatMap((child) => flattenNode(child, depth + 1, folded))];
+function flattenNode(
+  node: CommentNode,
+  depth: number,
+  folded: ReadonlySet<number>,
+  headerOnly: ReadonlySet<number>,
+): FlatComment[] {
+  const isHeaderOnly = headerOnly.has(node.id);
+  const childrenHidden = isHeaderOnly || folded.has(node.id);
+  const entry: FlatComment = {
+    node,
+    depth,
+    descendantCount: countDescendants(node),
+    childrenHidden,
+    headerOnly: isHeaderOnly,
+  };
+  if (childrenHidden) return [entry];
+  return [entry, ...node.children.flatMap((child) => flattenNode(child, depth + 1, folded, headerOnly))];
 }
 
 export function toggleFold(folded: ReadonlySet<number>, id: number): Set<number> {
@@ -27,7 +46,14 @@ export function toggleFold(folded: ReadonlySet<number>, id: number): Set<number>
   return next;
 }
 
-/** Every id that has children. */
+/** Removes a node from the header-only set; never re-adds (opening a header-only row is one-way). */
+export function revealHeaderOnly(headerOnly: ReadonlySet<number>, id: number): Set<number> {
+  const next = new Set(headerOnly);
+  next.delete(id);
+  return next;
+}
+
+/** Every id that has children — the default/collapsed fold set (body shown, children hidden). */
 export function collapseAll(nodes: CommentNode[]): Set<number> {
   const ids = new Set<number>();
   const visit = (node: CommentNode): void => {
@@ -38,6 +64,13 @@ export function collapseAll(nodes: CommentNode[]): Set<number> {
   return ids;
 }
 
-export function expandAll(): Set<number> {
-  return new Set();
+/** Every id, parents and leaves — the header-only set produced by `C` (collapse all). */
+export function headerOnlyAll(nodes: CommentNode[]): Set<number> {
+  const ids = new Set<number>();
+  const visit = (node: CommentNode): void => {
+    ids.add(node.id);
+    node.children.forEach(visit);
+  };
+  nodes.forEach(visit);
+  return ids;
 }

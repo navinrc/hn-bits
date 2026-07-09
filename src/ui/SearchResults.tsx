@@ -4,8 +4,11 @@ import open from 'open';
 import { searchStories } from '../api/algolia.js';
 import { hnItemUrl, type Story } from '../api/firebase.js';
 import { clampSelection } from '../lib/listNavigation.js';
-import { ensureVisible, shouldFetchMore } from '../lib/viewport.js';
-import { FOOTER_ROWS, HEADER_ROWS } from './Layout.js';
+import { ensureVisibleLines, shouldFetchMore } from '../lib/viewport.js';
+import { footerRows, SEARCH_RESULTS_KEYS } from './keymap.js';
+import { HEADER_ROWS } from './Layout.js';
+import { LoadingIndicator } from './LoadingIndicator.js';
+import { STORY_ROW_HEIGHT } from './StoryRow.js';
 import { StoryListView } from './StoryListView.js';
 import { theme } from './theme.js';
 
@@ -23,7 +26,7 @@ type Status = 'loading' | 'ready' | 'error';
 
 export function SearchResults({ query, onSelectStory, onExit, onSearchAgain }: SearchResultsProps): JSX.Element {
   const { columns, rows } = useWindowSize();
-  const bodyHeight = Math.max(1, rows - HEADER_ROWS - FOOTER_ROWS - HEADER_LINES);
+  const bodyHeight = Math.max(1, rows - HEADER_ROWS - footerRows(SEARCH_RESULTS_KEYS, columns) - HEADER_LINES);
 
   const [stories, setStories] = useState<Story[]>([]);
   const [hasMore, setHasMore] = useState(false);
@@ -34,7 +37,7 @@ export function SearchResults({ query, onSelectStory, onExit, onSearchAgain }: S
   const [error, setError] = useState('');
   const token = useRef(0);
   const nextPage = useRef(0);
-  const offsetRef = useRef(0);
+  const topLineRef = useRef(0);
 
   useEffect(() => {
     void loadFirstPage();
@@ -107,12 +110,13 @@ export function SearchResults({ query, onSelectStory, onExit, onSearchAgain }: S
 
   useInput(handleInput);
 
-  if (status === 'loading') return <Text>loading…</Text>;
+  if (status === 'loading') return <LoadingIndicator label="Searching..." />;
   if (status === 'error') return <Text color={theme.colors.error}>{error} (r to retry)</Text>;
 
   const listHeight = loadingMore ? Math.max(1, bodyHeight - 1) : bodyHeight;
-  const offset = ensureVisible(offsetRef.current, selected, listHeight, stories.length);
-  offsetRef.current = offset;
+  const heights = stories.map(() => STORY_ROW_HEIGHT);
+  const topLine = ensureVisibleLines(heights, selected, topLineRef.current, listHeight);
+  topLineRef.current = topLine;
 
   return (
     <Box flexDirection="column">
@@ -120,7 +124,7 @@ export function SearchResults({ query, onSelectStory, onExit, onSearchAgain }: S
         search: {query}
         {totalHits !== null ? `    ${totalHits} results` : ''}
       </Text>
-      <StoryListView stories={stories} selected={selected} offset={offset} height={listHeight} width={columns} />
+      <StoryListView stories={stories} selected={selected} topLine={topLine} height={listHeight} width={columns} />
       {loadingMore && <Text dimColor>loading more…</Text>}
     </Box>
   );
