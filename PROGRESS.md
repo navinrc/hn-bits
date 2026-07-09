@@ -41,9 +41,11 @@ Two-line story rows + comments view redesign (bordered cards, collapsed-by-defau
 | 1: Story row layout | done | `theme.ts` gains `selectionBackground` (shared across palettes) and `glyphs.upvote`, drops `points`/`comments` glyphs, `selection` glyph is now `>`; `StoryRow` renders the two-line card (title + hostname on row 1, score/author/age/comments on row 2, row 1 highlighted full-width on selection); `StoryList`/`SearchResults` move from `ensureVisible`/`visibleSlice` to `ensureVisibleLines`/`sliceByLines`, and `StoryListView` clips a partial edge row down to its title line, never its meta line |
 | 2: Comments rework | done | `CommentsHeader` is a bordered card (title / score-author-age-comments / url); tree is `collapseAll`'d on load instead of starting expanded; `buildRow` no longer short-circuits a folded node's body, and every node with replies shows a right-aligned "N replies"/"1 reply" badge regardless of fold state; the selected comment renders inside a bordered card instead of `inverse` highlighting |
 | 3: Fix footer-wrap bug found during live verification | done | `Layout.FOOTER_ROWS` was hardcoded to `1`, but the footer hint text actually wraps to 2 rows at common terminal widths — with the new 2-line story rows that 1-line miscount corrupted the whole list (meta text bleeding into title lines). Replaced with `keymap.footerRows(keys, width)` (via `wrapPlainText`); dead `FOOTER_ROWS` constant removed. Confirmed live under tmux at 80/100/140 columns — pre-existing bug, not new to V1.6, just newly visible once row height stopped being 1. |
-
-V1.6 is now feature-complete against `specs/v1.6/`.
+| Polish specs (from demo-browse.gif review) | done | specs/v1.6/03-05 committed: tab bar redesign (brand + tab-notch active box + `? help`, header 3 rows), story list polish (right-aligned ranks, blank separator line, selection covers both lines, `❯` marker), animated braille loading indicator |
+| 4: Tab bar redesign | pending | matches specs/v1.6/03-tab-bar.md |
+| 5: Story list polish | pending | matches specs/v1.6/04-story-list-polish.md |
+| 6: Loading indicator | pending | matches specs/v1.6/05-loading-indicator.md |
 
 ## Known gaps / follow-ups
 
-- Next up: V2 (local AI, Ollama) per `specs/v2/`.
+- V1.6 phases 4–6 spec'd, not implemented. Then V2 (local AI, Ollama) per `specs/v2/`.
