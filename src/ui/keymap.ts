@@ -24,7 +24,7 @@ export const LIST_KEYS: readonly KeyBinding[] = [
 export const COMMENTS_KEYS: readonly KeyBinding[] = [
   { key: 'j/k', label: 'move' },
   { key: 'space', label: 'fold' },
-  { key: 'C/E', label: 'all' },
+  { key: 'C/E', label: 'collapse/expand' },
   { key: 'gg/G', label: 'top/bottom' },
   { key: 'o', label: 'browser' },
   { key: 'r', label: 'reload' },

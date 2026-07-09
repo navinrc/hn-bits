@@ -6,6 +6,8 @@ export interface ThemeColors {
   score: string;
   comment: string;
   selectionBackground: string;
+  link: string;
+  email: string;
 }
 
 export interface Theme {
@@ -32,6 +34,10 @@ function ansi256(code: number): string {
 // Shared across every palette — selection is a UI affordance, not a theme accent.
 const SELECTION_BACKGROUND = ansi256(238);
 
+// Shared across every palette — contact highlighting is an affordance, not a theme accent.
+const LINK = ansi256(81);
+const EMAIL = ansi256(114);
+
 // Ported from heartleo/hn-cli's internal/cli/colors.go (subset of roles this app uses).
 const palettes = {
   hn: {
@@ -42,6 +48,8 @@ const palettes = {
     score: ansi256(208),
     comment: ansi256(243),
     selectionBackground: SELECTION_BACKGROUND,
+    link: LINK,
+    email: EMAIL,
   },
   mocha: {
     accent: ansi256(183),
@@ -51,6 +59,8 @@ const palettes = {
     score: ansi256(208),
     comment: ansi256(109),
     selectionBackground: SELECTION_BACKGROUND,
+    link: LINK,
+    email: EMAIL,
   },
   dracula: {
     accent: ansi256(141),
@@ -60,6 +70,8 @@ const palettes = {
     score: ansi256(208),
     comment: ansi256(117),
     selectionBackground: SELECTION_BACKGROUND,
+    link: LINK,
+    email: EMAIL,
   },
   tokyo: {
     accent: ansi256(75),
@@ -69,6 +81,8 @@ const palettes = {
     score: ansi256(208),
     comment: ansi256(73),
     selectionBackground: SELECTION_BACKGROUND,
+    link: LINK,
+    email: EMAIL,
   },
   nord: {
     accent: ansi256(110),
@@ -78,6 +92,8 @@ const palettes = {
     score: ansi256(208),
     comment: ansi256(73),
     selectionBackground: SELECTION_BACKGROUND,
+    link: LINK,
+    email: EMAIL,
   },
   gruvbox: {
     accent: ansi256(208),
@@ -87,6 +103,8 @@ const palettes = {
     score: ansi256(208),
     comment: ansi256(108),
     selectionBackground: SELECTION_BACKGROUND,
+    link: LINK,
+    email: EMAIL,
   },
 } satisfies Record<string, ThemeColors>;
 

@@ -3,7 +3,15 @@ import { Box, Text, useInput, useWindowSize, type Key } from 'ink';
 import open from 'open';
 import { fetchComments, type CommentNode } from '../api/algolia.js';
 import { hnItemUrl, type Story } from '../api/firebase.js';
-import { collapseAll, expandAll, flattenTree, toggleFold, type FlatComment } from '../lib/commentTree.js';
+import {
+  collapseAll,
+  flattenTree,
+  headerOnlyAll,
+  revealHeaderOnly,
+  toggleFold,
+  type FlatComment,
+} from '../lib/commentTree.js';
+import { tokenizeContacts, type TextToken } from '../lib/contactHighlight.js';
 import { formatAge } from '../lib/format.js';
 import { htmlToText } from '../lib/html.js';
 import { clampSelection } from '../lib/listNavigation.js';
@@ -14,7 +22,19 @@ import { LoadingIndicator } from './LoadingIndicator.js';
 import { theme } from './theme.js';
 
 const HEADER_BORDER_LINES = 2;
-const COMMENT_BORDER_WIDTH = 2;
+// borderStyle (2 cols) + paddingX (2 cols) eaten from the card's interior width.
+const HEADER_FRAME_WIDTH = 4;
+const ROW_BORDER_WIDTH = 2;
+const SELECTION_BAR = '▌';
+
+// Long titles/URLs word-wrap inside the bordered card; undercounting that height
+// shrinks the comment viewport too little and overflows the terminal (corrupts the frame).
+export function commentsHeaderLines(story: Story, columns: number): number {
+  const width = Math.max(1, columns - HEADER_FRAME_WIDTH);
+  const titleLines = wrapPlainText(story.title, width).length;
+  const urlLines = story.url ? wrapPlainText(story.url, width).length : 0;
+  return HEADER_BORDER_LINES + titleLines + 1 + urlLines;
+}
 
 interface CommentsProps {
   story: Story;
@@ -25,16 +45,20 @@ type Status = 'loading' | 'ready' | 'error';
 
 export function Comments({ story, onBack }: CommentsProps): JSX.Element {
   const { columns, rows } = useWindowSize();
-  const headerLines = HEADER_BORDER_LINES + (story.url ? 3 : 2);
+  const headerLines = commentsHeaderLines(story, columns);
   const viewportLines = Math.max(1, rows - HEADER_ROWS - footerRows(COMMENTS_KEYS, columns) - headerLines);
 
   const [status, setStatus] = useState<Status>('loading');
   const [error, setError] = useState('');
   const [comments, setComments] = useState<CommentNode[]>([]);
-  const [folded, setFolded] = useState<ReadonlySet<number>>(new Set());
+  const [fold, setFold] = useState<{ folded: ReadonlySet<number>; headerOnly: ReadonlySet<number> }>({
+    folded: new Set(),
+    headerOnly: new Set(),
+  });
   const [selected, setSelected] = useState(0);
   const pendingTopJump = useRef(false);
   const topLineRef = useRef(0);
+  const { folded, headerOnly } = fold;
 
   useEffect(() => {
     void load();
@@ -45,7 +69,7 @@ export function Comments({ story, onBack }: CommentsProps): JSX.Element {
     try {
       const tree = await fetchComments(story.id);
       setComments(tree);
-      setFolded(collapseAll(tree));
+      setFold({ folded: collapseAll(tree), headerOnly: new Set() });
       setSelected(0);
       setStatus('ready');
     } catch (err) {
@@ -54,7 +78,7 @@ export function Comments({ story, onBack }: CommentsProps): JSX.Element {
     }
   }
 
-  const flat = useMemo(() => flattenTree(comments, folded), [comments, folded]);
+  const flat = useMemo(() => flattenTree(comments, folded, headerOnly), [comments, folded, headerOnly]);
   const rowsData = useMemo(() => flat.map((entry) => buildRow(entry, columns)), [flat, columns]);
   const clampedSelected = clampSelection(selected, 0, flat.length);
 
@@ -64,8 +88,20 @@ export function Comments({ story, onBack }: CommentsProps): JSX.Element {
 
   function toggleSelected(): void {
     const row = flat[clampedSelected];
-    if (!row || row.node.children.length === 0) return;
-    setFolded((f) => toggleFold(f, row.node.id));
+    if (!row) return;
+    if (row.headerOnly) {
+      return setFold((f) => ({ ...f, headerOnly: revealHeaderOnly(f.headerOnly, row.node.id) }));
+    }
+    if (row.node.children.length === 0) return;
+    setFold((f) => ({ ...f, folded: toggleFold(f.folded, row.node.id) }));
+  }
+
+  function collapseEverything(): void {
+    setFold((f) => ({ ...f, headerOnly: headerOnlyAll(comments) }));
+  }
+
+  function resetFold(): void {
+    setFold({ folded: collapseAll(comments), headerOnly: new Set() });
   }
 
   function handleInput(input: string, key: Key): void {
@@ -81,8 +117,8 @@ export function Comments({ story, onBack }: CommentsProps): JSX.Element {
     if (input === 'k' || key.upArrow) return setSelected(clampSelection(clampedSelected, -1, flat.length));
     if (input === 'G') return setSelected(Math.max(0, flat.length - 1));
     if (input === ' ' || key.return) return toggleSelected();
-    if (input === 'C') return setFolded(collapseAll(comments));
-    if (input === 'E') return setFolded(expandAll());
+    if (input === 'C') return collapseEverything();
+    if (input === 'E') return resetFold();
     if (input === 'o') return openStory();
     if (input === 'r') return void load();
   }
@@ -109,6 +145,7 @@ export function Comments({ story, onBack }: CommentsProps): JSX.Element {
           <CommentRowView
             key={row.id}
             depth={row.depth}
+            width={row.width}
             lines={row.lines.slice(start, end)}
             isSelected={rowIndex === clampedSelected}
           />
@@ -137,57 +174,93 @@ function CommentsHeader({ story }: CommentsHeaderProps): JSX.Element {
   );
 }
 
+interface Span {
+  text: string;
+  color?: string;
+  bold?: boolean;
+  underline?: boolean;
+}
+
+type RenderLine = { kind: 'header'; spans: Span[] } | { kind: 'body'; spans: Span[] };
+
 interface CommentRow {
   id: number;
   depth: number;
-  lines: string[];
+  width: number;
+  lines: RenderLine[];
+}
+
+function replyBadge(entry: FlatComment): string {
+  if (entry.descendantCount === 0) return '';
+  if (entry.headerOnly) return `[${entry.descendantCount} more]`;
+  return entry.descendantCount === 1 ? '1 reply' : `${entry.descendantCount} replies`;
+}
+
+function buildHeaderSpans(entry: FlatComment): Span[] {
+  const glyph = entry.headerOnly ? theme.glyphs.foldClosed : theme.glyphs.foldOpen;
+  const badge = replyBadge(entry);
+  const spans: Span[] = [
+    { text: `${glyph} `, color: theme.colors.accent },
+    { text: entry.node.author, color: theme.colors.accent, bold: true },
+    { text: ` · ${formatAge(entry.node.time)}`, color: theme.colors.muted },
+  ];
+  if (badge) spans.push({ text: ` | ${badge}`, color: theme.colors.muted });
+  return spans;
+}
+
+function tokenToSpan(token: TextToken): Span {
+  if (token.kind === 'link') return { text: token.text, color: theme.colors.link, underline: true };
+  if (token.kind === 'email') return { text: token.text, color: theme.colors.email, bold: true };
+  return { text: token.text };
 }
 
 function buildRow(entry: FlatComment, columns: number): CommentRow {
-  const glyph = entry.isFolded ? theme.glyphs.foldClosed : theme.glyphs.foldOpen;
-  const header = `${glyph} ${entry.node.author} · ${formatAge(entry.node.time)} ago`;
-  // Reserve 2 columns for the selection border so wrapping doesn't shift when selection moves.
-  const width = Math.max(1, columns - entry.depth * 2 - COMMENT_BORDER_WIDTH);
-  const headerLine = rightAlignBadge(header, replyBadge(entry.descendantCount), width);
-  const body = wrapPlainText(htmlToText(entry.node.text), width);
-  return { id: entry.node.id, depth: entry.depth, lines: [headerLine, ...body] };
+  // Reserve 2 columns for the selection bar so wrapping doesn't shift when selection moves.
+  const width = Math.max(1, columns - entry.depth * 2 - ROW_BORDER_WIDTH);
+  const header: RenderLine = { kind: 'header', spans: buildHeaderSpans(entry) };
+  const body: RenderLine[] = entry.headerOnly
+    ? []
+    : wrapPlainText(htmlToText(entry.node.text), width).map((line) => ({
+        kind: 'body',
+        spans: tokenizeContacts(line).map(tokenToSpan),
+      }));
+  return { id: entry.node.id, depth: entry.depth, width, lines: [header, ...body] };
 }
 
-function replyBadge(count: number): string {
-  if (count === 0) return '';
-  return count === 1 ? '1 reply' : `${count} replies`;
-}
-
-function rightAlignBadge(left: string, badge: string, width: number): string {
-  if (!badge) return left;
-  const gap = width - left.length - badge.length;
-  if (gap <= 0) return `${left} ${badge}`;
-  return `${left}${' '.repeat(gap)}${badge}`;
+function spanLength(spans: Span[]): number {
+  return spans.reduce((sum, span) => sum + span.text.length, 0);
 }
 
 interface CommentRowViewProps {
   depth: number;
-  lines: string[];
+  width: number;
+  lines: RenderLine[];
   isSelected: boolean;
 }
 
-function CommentRowView({ depth, lines, isSelected }: CommentRowViewProps): JSX.Element {
-  const content = lines.map((text, i) => (
-    <Text key={i} wrap="truncate-end">
-      {text}
-    </Text>
-  ));
+function CommentRowView({ depth, width, lines, isSelected }: CommentRowViewProps): JSX.Element {
+  const background = isSelected ? theme.colors.selectionBackground : undefined;
+  const prefix = isSelected ? `${SELECTION_BAR} ` : '  ';
+  const rowWidth = width + ROW_BORDER_WIDTH;
 
-  if (isSelected) {
-    return (
-      <Box marginLeft={depth * 2} flexDirection="column" borderStyle="round" borderColor={theme.colors.accent}>
-        {content}
-      </Box>
-    );
-  }
   return (
     <Box marginLeft={depth * 2} flexDirection="column">
-      {content}
+      {lines.map((line, i) => {
+        const spans: Span[] = [
+          { text: prefix, color: isSelected ? theme.colors.accent : undefined },
+          ...line.spans,
+        ];
+        if (isSelected) spans.push({ text: ' '.repeat(Math.max(0, rowWidth - spanLength(spans))) });
+        return (
+          <Text key={i} backgroundColor={background} wrap="truncate-end">
+            {spans.map((span, j) => (
+              <Text key={j} color={span.color} bold={span.bold} underline={span.underline}>
+                {span.text}
+              </Text>
+            ))}
+          </Text>
+        );
+      })}
     </Box>
   );
 }

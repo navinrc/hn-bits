@@ -85,7 +85,7 @@ describe('Comments', () => {
     instance.unmount();
   });
 
-  it('collapses every node with children on C', async () => {
+  it('collapses every node into header-only on C, hiding bodies and showing [N more]', async () => {
     const { instance } = renderComments();
     await instance.waitUntilRenderFlush();
 
@@ -94,8 +94,45 @@ describe('Comments', () => {
 
     const frame = instance.lastFrame();
     expect(frame).not.toContain('carol');
+    expect(frame).not.toContain('top level reply');
+    expect(frame).not.toContain('another top level');
     expect(frame).toContain('bob');
     expect(frame).toContain('dave');
+    expect(frame).toContain('[1 more]');
+
+    instance.unmount();
+  });
+
+  it('reveals a header-only node on space without also expanding its children', async () => {
+    const { instance } = renderComments();
+    await instance.waitUntilRenderFlush();
+
+    instance.stdin.writeInput('C');
+    await instance.waitUntilRenderFlush();
+    instance.stdin.writeInput(' ');
+    await instance.waitUntilRenderFlush();
+
+    const frame = instance.lastFrame();
+    expect(frame).toContain('top level reply');
+    expect(frame).not.toContain('carol');
+
+    instance.unmount();
+  });
+
+  it('resets to the default collapsed state on E after C', async () => {
+    const { instance } = renderComments();
+    await instance.waitUntilRenderFlush();
+
+    instance.stdin.writeInput('C');
+    await instance.waitUntilRenderFlush();
+    instance.stdin.writeInput('E');
+    await instance.waitUntilRenderFlush();
+
+    const frame = instance.lastFrame();
+    expect(frame).toContain('top level reply');
+    expect(frame).toContain('another top level');
+    expect(frame).not.toContain('carol');
+    expect(frame).toContain('1 reply');
 
     instance.unmount();
   });
