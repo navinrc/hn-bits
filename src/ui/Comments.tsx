@@ -10,6 +10,7 @@ import { clampSelection } from '../lib/listNavigation.js';
 import { ensureVisibleLines, sliceByLines, wrapPlainText } from '../lib/viewport.js';
 import { COMMENTS_KEYS, footerRows } from './keymap.js';
 import { HEADER_ROWS } from './Layout.js';
+import { LoadingIndicator } from './LoadingIndicator.js';
 import { theme } from './theme.js';
 
 const HEADER_BORDER_LINES = 2;
@@ -88,7 +89,7 @@ export function Comments({ story, onBack }: CommentsProps): JSX.Element {
 
   useInput(handleInput);
 
-  if (status === 'loading') return <Text>loading…</Text>;
+  if (status === 'loading') return <LoadingIndicator label="Loading comments..." />;
   if (status === 'error') return <Text color={theme.colors.error}>{error} (r to retry)</Text>;
 
   const heights = rowsData.map((row) => row.lines.length);

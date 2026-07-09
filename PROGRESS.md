@@ -45,8 +45,10 @@ Two-line story rows + comments view redesign (bordered cards, collapsed-by-defau
 | 4: Tab bar redesign | done | matches specs/v1.6/03-tab-bar.md; `Layout.HEADER_ROWS` 1→3, `TabBar` rewritten to build 3 plain-string rows (top border / brand+tabs+`? help` / notch rule) with the active tab's box walls tracked by column so the rule notch aligns exactly under it at any width; verified live via tmux at 100 and 70 columns switching tabs |
 | 5: Story list polish | done | matches specs/v1.6/04-story-list-polish.md; `STORY_ROW_HEIGHT` 2→3 (blank separator line), rank right-aligned to `String(stories.length).length` via new `rankWidth` prop, `theme.glyphs.selection` `>`→`❯`, selection background now covers both title and meta lines (full width); `StoryListView` clip priority reworked to line-count-based (separator drops first, then meta, title always last standing) |
 | Bugfix: selected-row content reaching exact terminal width corrupts the row below | done | title/hostname (or, for short titles, the selection-highlight padding) could sum to exactly the terminal width; that triggers a VT100 delayed-wrap that Ink's cursor math doesn't account for, silently dropping the next row's background paint. Fixed by reserving 1 trailing column (`safeWidth = width - 1`) for both truncation and padding math in `StoryRow`. Root-caused via `tmux capture-pane -e` byte-level diffing across ~20 isolated repros (ruled out glyph unicode-width, rerender/diffing races, and rank-width churn before isolating it to exact-width-fill); regression test in `StoryRow.test.tsx` (verified red without the fix, green with it) |
-| 6: Loading indicator | pending | matches specs/v1.6/05-loading-indicator.md |
+| 6: Loading indicator | done | matches specs/v1.6/05-loading-indicator.md; new shared `LoadingIndicator.tsx` (braille spinner, 80ms/frame, `useState`+`useEffect` interval, cleaned up on unmount) replaces the bare `loading…` text in `StoryList`, `Comments`, `SearchResults` with per-call-site labels ("Loading stories...", "Loading comments...", "Searching..."); `loading more…` footer line left as plain text per spec. Verified live via tmux (spinner glyph + label visible on cold start and on opening comments) |
+
+V1.6 is now feature-complete against `specs/v1.6/`.
 
 ## Known gaps / follow-ups
 
-- V1.6 phases 4–6 spec'd, not implemented. Then V2 (local AI, Ollama) per `specs/v2/`.
+- Then V2 (local AI, Ollama) per `specs/v2/`.

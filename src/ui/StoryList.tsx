@@ -6,6 +6,7 @@ import { clampSelection, mapFeedKey, nextFeed, previousFeed } from '../lib/listN
 import { ensureVisibleLines, shouldFetchMore } from '../lib/viewport.js';
 import { footerRows, LIST_KEYS } from './keymap.js';
 import { HEADER_ROWS } from './Layout.js';
+import { LoadingIndicator } from './LoadingIndicator.js';
 import { STORY_ROW_HEIGHT } from './StoryRow.js';
 import { StoryListView } from './StoryListView.js';
 import { theme } from './theme.js';
@@ -113,7 +114,7 @@ export function StoryList({ feed, onFeedChange, onSelectStory, onSearchRequested
 
   useInput(handleInput);
 
-  if (status === 'loading') return <Text>loading…</Text>;
+  if (status === 'loading') return <LoadingIndicator label="Loading stories..." />;
   if (status === 'error') return <Text color={theme.colors.error}>{error} (r to retry)</Text>;
 
   const listHeight = loadingMore ? Math.max(1, bodyHeight - 1) : bodyHeight;
