@@ -19,7 +19,7 @@ export interface Theme {
 }
 
 const glyphs: Theme['glyphs'] = {
-  selection: '>',
+  selection: '❯',
   foldOpen: '▾',
   foldClosed: '▸',
   upvote: '▲',
