@@ -1,3 +1,5 @@
+import { wrapPlainText } from '../lib/viewport.js';
+
 export interface KeyBinding {
   key: string;
   label: string;
@@ -41,4 +43,9 @@ export const SEARCH_RESULTS_KEYS: readonly KeyBinding[] = [
 /** Footer hint string: view keys followed by the global keys. */
 export function footerHint(viewKeys: readonly KeyBinding[]): string {
   return [...viewKeys, ...GLOBAL_KEYS].map((binding) => `${binding.key} ${binding.label}`).join(' · ');
+}
+
+/** How many terminal rows the footer hint wraps to at the given width. */
+export function footerRows(viewKeys: readonly KeyBinding[], width: number): number {
+  return wrapPlainText(footerHint(viewKeys), width).length;
 }

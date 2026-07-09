@@ -53,24 +53,34 @@ describe('Comments', () => {
     await instance.waitUntilRenderFlush();
 
     const frame = instance.lastFrame();
-    expect(frame).toContain('Show HN: something great (example.com)');
-    expect(frame).toContain('123 points · by alice · 0m ago · 3 comments');
+    expect(frame).toContain('Show HN: something great');
+    expect(frame).toContain('▲ 123 points by alice 0m | 3 comments');
+    expect(frame).toContain('https://example.com/post');
 
     instance.unmount();
   });
 
-  it('folds the selected node on space, hiding its children and showing the count', async () => {
+  it('collapses every node with children by default, still showing its own body and a reply badge', async () => {
     const { instance } = renderComments();
-    await instance.waitUntilRenderFlush();
-
-    expect(instance.lastFrame()).toContain('carol');
-
-    instance.stdin.writeInput(' ');
     await instance.waitUntilRenderFlush();
 
     const frame = instance.lastFrame();
     expect(frame).not.toContain('carol');
-    expect(frame).toContain('(+1)');
+    expect(frame).toContain('bob');
+    expect(frame).toContain('top level reply');
+    expect(frame).toContain('1 reply');
+
+    instance.unmount();
+  });
+
+  it('unfolds the selected node on space, revealing its children', async () => {
+    const { instance } = renderComments();
+    await instance.waitUntilRenderFlush();
+
+    instance.stdin.writeInput(' ');
+    await instance.waitUntilRenderFlush();
+
+    expect(instance.lastFrame()).toContain('carol');
 
     instance.unmount();
   });

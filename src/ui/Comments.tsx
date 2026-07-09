@@ -7,12 +7,13 @@ import { collapseAll, expandAll, flattenTree, toggleFold, type FlatComment } fro
 import { formatAge } from '../lib/format.js';
 import { htmlToText } from '../lib/html.js';
 import { clampSelection } from '../lib/listNavigation.js';
-import { getHostname } from '../lib/url.js';
 import { ensureVisibleLines, sliceByLines, wrapPlainText } from '../lib/viewport.js';
-import { FOOTER_ROWS, HEADER_ROWS } from './Layout.js';
+import { COMMENTS_KEYS, footerRows } from './keymap.js';
+import { HEADER_ROWS } from './Layout.js';
 import { theme } from './theme.js';
 
-const HEADER_LINES = 2;
+const HEADER_BORDER_LINES = 2;
+const COMMENT_BORDER_WIDTH = 2;
 
 interface CommentsProps {
   story: Story;
@@ -23,7 +24,8 @@ type Status = 'loading' | 'ready' | 'error';
 
 export function Comments({ story, onBack }: CommentsProps): JSX.Element {
   const { columns, rows } = useWindowSize();
-  const viewportLines = Math.max(1, rows - HEADER_ROWS - FOOTER_ROWS - HEADER_LINES);
+  const headerLines = HEADER_BORDER_LINES + (story.url ? 3 : 2);
+  const viewportLines = Math.max(1, rows - HEADER_ROWS - footerRows(COMMENTS_KEYS, columns) - headerLines);
 
   const [status, setStatus] = useState<Status>('loading');
   const [error, setError] = useState('');
@@ -42,7 +44,7 @@ export function Comments({ story, onBack }: CommentsProps): JSX.Element {
     try {
       const tree = await fetchComments(story.id);
       setComments(tree);
-      setFolded(new Set());
+      setFolded(collapseAll(tree));
       setSelected(0);
       setStatus('ready');
     } catch (err) {
@@ -120,59 +122,71 @@ interface CommentsHeaderProps {
 }
 
 function CommentsHeader({ story }: CommentsHeaderProps): JSX.Element {
-  const hostname = getHostname(story.url);
   return (
-    <Box flexDirection="column">
-      <Text color={theme.colors.title}>
+    <Box flexDirection="column" borderStyle="round" borderColor={theme.colors.accent} paddingX={1}>
+      <Text bold color={theme.colors.title}>
         {story.title}
-        {hostname ? ` (${hostname})` : ''}
       </Text>
       <Text dimColor>
-        {story.score} points · by {story.by} · {formatAge(story.time)} ago · {story.descendants} comments
+        {theme.glyphs.upvote} {story.score} points by {story.by} {formatAge(story.time)} | {story.descendants}{' '}
+        comments
       </Text>
+      {story.url && <Text color={theme.colors.accent}>{story.url}</Text>}
     </Box>
   );
-}
-
-interface RowLine {
-  text: string;
-  isHeader: boolean;
 }
 
 interface CommentRow {
   id: number;
   depth: number;
-  lines: RowLine[];
+  lines: string[];
 }
 
 function buildRow(entry: FlatComment, columns: number): CommentRow {
   const glyph = entry.isFolded ? theme.glyphs.foldClosed : theme.glyphs.foldOpen;
-  const count = entry.isFolded && entry.descendantCount > 0 ? ` (+${entry.descendantCount})` : '';
-  const header: RowLine = {
-    text: `${glyph} ${entry.node.author} · ${formatAge(entry.node.time)} ago${count}`,
-    isHeader: true,
-  };
-  if (entry.isFolded) return { id: entry.node.id, depth: entry.depth, lines: [header] };
+  const header = `${glyph} ${entry.node.author} · ${formatAge(entry.node.time)} ago`;
+  // Reserve 2 columns for the selection border so wrapping doesn't shift when selection moves.
+  const width = Math.max(1, columns - entry.depth * 2 - COMMENT_BORDER_WIDTH);
+  const headerLine = rightAlignBadge(header, replyBadge(entry.descendantCount), width);
+  const body = wrapPlainText(htmlToText(entry.node.text), width);
+  return { id: entry.node.id, depth: entry.depth, lines: [headerLine, ...body] };
+}
 
-  const width = Math.max(1, columns - entry.depth * 2);
-  const body = wrapPlainText(htmlToText(entry.node.text), width).map((text) => ({ text, isHeader: false }));
-  return { id: entry.node.id, depth: entry.depth, lines: [header, ...body] };
+function replyBadge(count: number): string {
+  if (count === 0) return '';
+  return count === 1 ? '1 reply' : `${count} replies`;
+}
+
+function rightAlignBadge(left: string, badge: string, width: number): string {
+  if (!badge) return left;
+  const gap = width - left.length - badge.length;
+  if (gap <= 0) return `${left} ${badge}`;
+  return `${left}${' '.repeat(gap)}${badge}`;
 }
 
 interface CommentRowViewProps {
   depth: number;
-  lines: RowLine[];
+  lines: string[];
   isSelected: boolean;
 }
 
 function CommentRowView({ depth, lines, isSelected }: CommentRowViewProps): JSX.Element {
+  const content = lines.map((text, i) => (
+    <Text key={i} wrap="truncate-end">
+      {text}
+    </Text>
+  ));
+
+  if (isSelected) {
+    return (
+      <Box marginLeft={depth * 2} flexDirection="column" borderStyle="round" borderColor={theme.colors.accent}>
+        {content}
+      </Box>
+    );
+  }
   return (
-    <Box flexDirection="column" marginLeft={depth * 2}>
-      {lines.map((line, i) => (
-        <Text key={i} inverse={line.isHeader && isSelected} wrap="truncate-end">
-          {line.text}
-        </Text>
-      ))}
+    <Box marginLeft={depth * 2} flexDirection="column">
+      {content}
     </Box>
   );
 }

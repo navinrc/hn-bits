@@ -5,7 +5,6 @@ import { theme } from './theme.js';
 const MIN_ROWS = 8;
 
 export const HEADER_ROWS = 1;
-export const FOOTER_ROWS = 1;
 
 interface ScreenProps {
   children: ReactNode;

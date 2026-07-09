@@ -5,6 +5,7 @@ export interface ThemeColors {
   error: string;
   score: string;
   comment: string;
+  selectionBackground: string;
 }
 
 export interface Theme {
@@ -13,22 +14,23 @@ export interface Theme {
     selection: string;
     foldOpen: string;
     foldClosed: string;
-    points: string;
-    comments: string;
+    upvote: string;
   };
 }
 
 const glyphs: Theme['glyphs'] = {
-  selection: '▸',
+  selection: '>',
   foldOpen: '▾',
   foldClosed: '▸',
-  points: '^',
-  comments: 'c:',
+  upvote: '▲',
 };
 
 function ansi256(code: number): string {
   return `ansi256(${code})`;
 }
+
+// Shared across every palette — selection is a UI affordance, not a theme accent.
+const SELECTION_BACKGROUND = ansi256(238);
 
 // Ported from heartleo/hn-cli's internal/cli/colors.go (subset of roles this app uses).
 const palettes = {
@@ -39,6 +41,7 @@ const palettes = {
     error: ansi256(204),
     score: ansi256(208),
     comment: ansi256(243),
+    selectionBackground: SELECTION_BACKGROUND,
   },
   mocha: {
     accent: ansi256(183),
@@ -47,6 +50,7 @@ const palettes = {
     error: ansi256(204),
     score: ansi256(208),
     comment: ansi256(109),
+    selectionBackground: SELECTION_BACKGROUND,
   },
   dracula: {
     accent: ansi256(141),
@@ -55,6 +59,7 @@ const palettes = {
     error: ansi256(210),
     score: ansi256(208),
     comment: ansi256(117),
+    selectionBackground: SELECTION_BACKGROUND,
   },
   tokyo: {
     accent: ansi256(75),
@@ -63,6 +68,7 @@ const palettes = {
     error: ansi256(203),
     score: ansi256(208),
     comment: ansi256(73),
+    selectionBackground: SELECTION_BACKGROUND,
   },
   nord: {
     accent: ansi256(110),
@@ -71,6 +77,7 @@ const palettes = {
     error: ansi256(174),
     score: ansi256(208),
     comment: ansi256(73),
+    selectionBackground: SELECTION_BACKGROUND,
   },
   gruvbox: {
     accent: ansi256(208),
@@ -79,6 +86,7 @@ const palettes = {
     error: ansi256(167),
     score: ansi256(208),
     comment: ansi256(108),
+    selectionBackground: SELECTION_BACKGROUND,
   },
 } satisfies Record<string, ThemeColors>;
 
