@@ -5,6 +5,18 @@ Terminal-first Hacker News client. Fullscreen TUI built with TypeScript + Ink (R
 ## Install
 
 ```bash
+npm install -g hn-bits
+```
+
+Or run without installing:
+
+```bash
+npx hn-bits
+```
+
+### From source
+
+```bash
 npm install
 npm run build
 npm link   # exposes the `hn` binary
