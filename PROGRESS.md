@@ -62,7 +62,21 @@ v2/v3 specs were written against original V1, before v1.5/v1.6 shipped. Audit fo
 | `ai/context.ts` added to module tree; `Story.text?` + `keymap.ts` touch points noted | v2/00 |
 | Bookmarks: 6th `Saved` tab in TabBar (`hn bookmarks` opens on it), reuses `StoryListView` + continuous scroll (paging refs deleted), `★` moves to meta line, `B` in list + comments, mockup redrawn to 3-line rows / notch header / keymap footer | v3/00, 05 |
 
+## V2 — Local AI (specs/v2/)
+
+Summaries (`s`) and Ask AI (`a`) grounded in the story's article + comment thread, streamed from a local Ollama instance. No cloud calls, no API keys.
+
+| Phase | Status | Notes |
+|-------|--------|-------|
+| 1: Config + Ollama client | done | `lib/config.ts` (`$HN_BITS_CONFIG` or `~/.config/hn-bits/config.json`, deep-merge defaults, invalid JSON warns and degrades to absent — never crashes); `ai/ollama.ts` (`chatStream` NDJSON streaming over `/api/chat`, `checkOllama` health probe via `/api/tags`, typed error taxonomy `OllamaDownError`/`ModelMissingError`/`OllamaError`/`TimeoutError` with a shared `describeError` hint renderer, 60s idle timeout, clean exit on caller abort). Verified live against a running Ollama (llama3.2): health check + streamed chat |
+| 2: Article extraction | done | `lib/article.ts`: `@mozilla/readability` + `jsdom` (lazily imported so plain-reader startup stays fast), 15s timeout, 2MB response cap, `ExtractionError` reasons (`fetch-failed`/`not-html`/`unreadable`), 16k-char truncation at a paragraph boundary. Verified live against a real article URL |
+| 3: Summaries (`s`) | done | `ai/context.ts` (`buildThreadContext`: depth-≤2 replies, 1k-char per-comment cap, 12k-char thread budget, always includes at least one top-level comment); `ai/summaryPrompts.ts` (list-mode fallback chain: article → post text → thread, each with a notice; comments-mode summarizes the already-loaded tree); `ui/SummaryPanel.tsx` (bordered streaming panel, setup-hint/preparing/thinking/streaming/done/error states, `esc` close · `s` regenerate · `j`/`k` scroll); wired into `StoryList`, `SearchResults`, `Comments`. `Story` gains optional `text?` for the text-post fallback. Verified live via tmux: article summary (with real extraction + truncation notice) and thread summary both streamed correctly |
+| 4: Ask AI (`a`) | done | `ai/context.ts` gains `buildAskAIContext` (story metadata + article text + trimmed thread, reusing `buildThreadContext`); `ui/AskAI.tsx` full-screen chat view — health check on open (down/model-missing render as an immediate hint), article extraction with post-text/unavailable-reason fallback, thread fetched on demand from the list (reused as-is when opened from Comments), multi-turn history sent as `[system+context, ...history, new turn]`, `esc` contextual (abort mid-stream vs. leave when idle), `ctrl+c` quits. `App.tsx` gains an `ask` view (`NonAskView`-typed `returnTo`); global `q`/`?` step aside for it so keystrokes reach the chat input. Verified live via tmux: multi-turn Q&A grounded in both the extracted article and real thread sentiment, `esc` returned cleanly to the list |
+
+V2 is feature-complete against `specs/v2/`. Not yet done: everything in v2/00's "Out of V2" list (bookmarks/subscriptions/watcher/notifications/SQLite are V3; no cloud providers; no chat/summary persistence).
+
 ## Known gaps / follow-ups
 
 - V1.6 phases 1–8 complete; V1.6 is feature-complete against `specs/v1.6/`.
-- Next: V2 (local AI, Ollama) per `specs/v2/`.
+- V2 phases 1–4 complete; V2 is feature-complete against `specs/v2/`.
+- Next: V3 (subscriptions + watcher + Telegram + SQLite + bookmarks) per `specs/v3/`.
