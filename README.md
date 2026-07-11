@@ -1,6 +1,6 @@
 # hn-bits
 
-Terminal-first Hacker News client. Fullscreen TUI built with TypeScript + Ink (React for the terminal), backed by the HN Firebase and Algolia APIs. No config, no database — fully stateless.
+Terminal-first Hacker News client. Fullscreen TUI built with TypeScript + Ink (React for the terminal), backed by the HN Firebase and Algolia APIs. No database. Optional local-AI features (summaries + Ask AI) read a config file; everything else is fully stateless.
 
 ## Install
 
@@ -20,6 +20,26 @@ hn --theme dracula  # or: HN_THEME=dracula hn
 ```
 
 Press `?` from any view for the full keybinding help overlay.
+
+### Local AI (summaries + Ask AI)
+
+Article/thread summaries (`s`) and interactive Q&A (`a`) run against a local [Ollama](https://ollama.com) instance — no cloud calls, no API keys. Optional: the app works fully without it, `s`/`a` just show a setup hint until configured.
+
+**Prerequisites**
+
+```bash
+brew install ollama   # or see ollama.com/download
+ollama serve           # if not already running as a service
+ollama pull llama3.2    # or any other chat-capable model
+```
+
+**Setup** — create `~/.config/hn-bits/config.json` (one-time; override the path with `$HN_BITS_CONFIG`):
+
+```json
+{ "ollama": { "host": "http://localhost:11434", "model": "llama3.2" } }
+```
+
+No `hn config` command — edit the file directly. Missing fields fall back to the defaults above; invalid JSON degrades to "AI disabled" with a warning rather than crashing the reader.
 
 ### Themes
 
@@ -46,6 +66,8 @@ Press `?` from any view for the full keybinding help overlay.
 | `o` | open story URL in browser |
 | `r` | refresh feed |
 | `/` | search |
+| `s` | AI summary (article, or thread if no article) |
+| `a` | Ask AI (chat grounded in the story) |
 
 **Comments**
 
@@ -57,6 +79,8 @@ Press `?` from any view for the full keybinding help overlay.
 | `g g` / `G` | top / bottom |
 | `o` | open story URL in browser |
 | `r` | reload |
+| `s` | AI thread summary |
+| `a` | Ask AI (chat grounded in the story) |
 | `esc`/`b` | back |
 
 **Search results**
@@ -78,6 +102,7 @@ npm run build  # tsc
 - **CLI**: Commander `^15.0.0`
 - **Runtime**: `open` `^11.0.0`, native `fetch` — no HTTP client dep
 - **Data sources**: HN Firebase API + HN Algolia Search API — no backend/database
+- **Local AI**: [Ollama](https://ollama.com) (native `fetch` streaming, no SDK) + `@mozilla/readability` and `jsdom` for article extraction — optional, config-gated
 - **Build**: `tsc` — no bundler
 - **Dev runner**: `tsx` `^4.23.0`
 - **Tests**: Vitest `^4.1.10` + vendored Ink test harness (`src/test/inkHarness.ts`)
@@ -85,4 +110,4 @@ npm run build  # tsc
 
 ## Specs and progress
 
-Implementation specs live in [`specs/`](specs/README.md); phase-by-phase status is tracked in [`PROGRESS.md`](PROGRESS.md). V1, V1.5, and V1.6 (this client) are feature-complete; V2 (local AI summaries) and V3 (subscriptions/watcher) are spec'd but not started.
+Implementation specs live in [`specs/`](specs/README.md); phase-by-phase status is tracked in [`PROGRESS.md`](PROGRESS.md). V1, V1.5, V1.6, and V2 (local AI) are feature-complete; V3 (subscriptions/watcher) is spec'd but not started.
