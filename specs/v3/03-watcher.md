@@ -7,7 +7,7 @@ One-shot pass over all subscriptions; cron owns scheduling. No daemon, no `--wat
 ```bash
 hn watch --once            # the only mode; --once required (guards against
                            # accidentally running a future daemon semantics)
-hn watch --once --dry-run  # print would-notify matches, no Telegram, no seen_items writes
+hn watch --once --dry-run  # print would-notify matches, no notifications sent, no seen_items writes
 ```
 
 Headless Commander subcommand — never renders Ink. Output = plain log lines to stdout/stderr (cron mails or discards them).
@@ -16,16 +16,16 @@ Headless Commander subcommand — never renders Ink. Output = plain log lines to
 
 ```mermaid
 flowchart TD
-    S[start] --> CFG{telegram config present?}
-    CFG -->|no| E1[stderr: telegram not configured<br/>exit 2]
+    S[start] --> CFG{any notifier configured?<br/>telegram or desktop}
+    CFG -->|no| E1[stderr: no notifier configured<br/>exit 2]
     CFG -->|yes| SUBS[load subscriptions]
     SUBS -->|none| E0[stdout: no subscriptions<br/>exit 0]
     SUBS --> LOOP[for each subscription]
     LOOP --> Q[Algolia search_by_date<br/>window: max lastRunAt-6h, now-24h fallback]
     Q --> FIL[drop: points < minPoints,<br/>already in seen_items]
-    FIL -->|matches| TG[telegram send, one message per story]
-    TG -->|sent ok| MARK[markSeen + continue]
-    TG -->|send failed| SKIP[log error, do NOT markSeen<br/>story retried next run]
+    FIL -->|matches| N[send via each configured notifier,<br/>one notification per story]
+    N -->|sent ok| MARK[markSeen + continue]
+    N -->|send failed| SKIP[log error, do NOT markSeen<br/>story retried next run]
     FIL -->|none| NEXT[next subscription]
     MARK --> NEXT
     SKIP --> NEXT
@@ -38,7 +38,7 @@ flowchart TD
 ## Rules
 
 - **Ordering:** subscriptions processed sequentially (rate-friendly to Algolia and Telegram); stories within one oldest-first (notifications arrive in creation order).
-- **Dedup before send**, `markSeen` only **after** successful send — failed sends retry next run (idempotency via seen_items).
+- **Dedup before send**, `markSeen` only **after** successful send — failed sends retry next run (idempotency via seen_items). "Successful send" = telegram succeeded; desktop is best-effort and never blocks markSeen ([04-notifications.md](04-notifications.md)). Desktop-only config: a spawned wrapper counts as sent — at-most-once delivery, accepted.
 - **`touchLastRun`** updated only when the subscription's Algolia query succeeded (send failures don't block the window — seen_items handles those); Algolia failure leaves `lastRunAt` untouched so the window re-covers the gap.
 - **Errors are per-subscription:** one failing query/send never aborts the others.
 - **`--dry-run`:** full pipeline, prints `would notify: [sub] title (points)` lines, zero writes.
@@ -49,12 +49,13 @@ flowchart TD
 |------|---------|
 | 0 | pass completed (with or without notifications) |
 | 1 | pass completed but ≥1 subscription had query/send failures (cron mail signal) |
-| 2 | misconfiguration (no telegram config) — fix before scheduling |
+| 2 | misconfiguration (no notifier configured — neither telegram nor desktop) — fix before scheduling |
 
 ## Log format
 
 ```text
 [2026-07-07T10:30:01Z] watch: 3 subscriptions
+[2026-07-07T10:30:01Z] desktop: alerter not found (brew install vjeantet/tap/alerter), skipping
 [2026-07-07T10:30:02Z] postgres: 2 new matches
 [2026-07-07T10:30:03Z] postgres: notified 41211001 "Postgres 18 released" (312 pts)
 [2026-07-07T10:30:04Z] zig-lang: no new matches

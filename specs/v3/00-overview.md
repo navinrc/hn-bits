@@ -9,12 +9,12 @@ Prerequisites: V1.6 complete; V2 config file exists ([../v2/01-config.md](../v2/
 1. **SQLite storage** — `better-sqlite3`, single DB file; tables: `subscriptions`, `seen_items`, `bookmarks`.
 2. **Subscriptions** — named topic queries (Algolia query + min-points), CRUD via `hn sub` CLI.
 3. **Watcher** — `hn watch --once`: query each subscription, dedup, notify, exit. Scheduled by the OS (cron/launchd), not a daemon.
-4. **Telegram notifications** — bot API `sendMessage`; notifier interface keeps Discord addable later.
+4. **Notifications** — Telegram bot API `sendMessage` + optional macOS desktop via `alerter` (click opens story); notifier interface keeps Discord addable later.
 5. **Bookmarks** — `B` toggles bookmark on a story; a 6th **saved** tab lists them; `hn bookmarks` opens the TUI on that tab.
 
 ## Out of V3
 
-Discord (interface-ready, not implemented), long-running daemon mode, notification digests/batching windows, comment-level subscriptions, read-state tracking, multi-user anything, web UI.
+Discord (interface-ready, not implemented), long-running daemon mode, notification digests/batching windows, desktop notification reply/dropdown actions (click-to-open is in), non-macOS desktop notifications, comment-level subscriptions, read-state tracking, multi-user anything, web UI.
 
 ## Process model
 
@@ -29,6 +29,7 @@ flowchart LR
     DB -->|subscriptions| Q[Algolia search_by_date<br/>per subscription]
     Q --> F[filter: min points,<br/>not in seen_items]
     F -->|new matches| N[Telegram sendMessage]
+    F -->|new matches| D[alerter desktop notification<br/>click opens story]
     N -->|sent ok| S[record in seen_items]
     F -->|nothing new| X[exit 0]
     subgraph TUI
@@ -42,6 +43,7 @@ flowchart LR
 | Package | Why |
 |---------|-----|
 | `better-sqlite3` | synchronous, zero-config embedded DB; ideal for one-shot CLI (no pool/async ceremony) |
+| `alerter` *(external binary, `brew install vjeantet/tap/alerter`, macOS-only — not npm)* | desktop notifications with click-result output; spawned as child process |
 
 ## New modules
 
@@ -54,7 +56,8 @@ src/
 │   └── bookmarks.ts
 ├── notify/
 │   ├── notifier.ts      # interface
-│   └── telegram.ts
+│   ├── telegram.ts
+│   └── desktop.ts       # macOS alerter
 └── watch.ts             # hn watch --once entry
 ```
 
@@ -65,5 +68,5 @@ src/
 | [01-storage.md](01-storage.md) | DB location, schema DDL, ER diagram, migrations |
 | [02-subscriptions.md](02-subscriptions.md) | Topic model, `hn sub` CLI, matching semantics |
 | [03-watcher.md](03-watcher.md) | `hn watch --once` flow, dedup, cron setup, exit codes |
-| [04-notifications.md](04-notifications.md) | Notifier interface, Telegram implementation |
+| [04-notifications.md](04-notifications.md) | Notifier interface, Telegram + desktop (alerter) implementations |
 | [05-bookmarks.md](05-bookmarks.md) | `B` key, `hn bookmarks` view |
