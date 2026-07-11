@@ -25,6 +25,8 @@ Press `?` from any view for the full keybinding help overlay.
 
 Article/thread summaries (`s`) and interactive Q&A (`a`) run against a local [Ollama](https://ollama.com) instance — no cloud calls, no API keys. Optional: the app works fully without it, `s`/`a` just show a setup hint until configured.
 
+![Streaming article summary, then a multi-turn Ask AI conversation grounded in the same story](docs/ai-demo.gif)
+
 **Prerequisites**
 
 ```bash
