@@ -76,6 +76,7 @@ export function render(node: ReactElement, columns = 80, rows = 24): TestInstanc
     stdout: stdout as unknown as NodeJS.WriteStream,
     stderr: stderr as unknown as NodeJS.WriteStream,
     patchConsole: false,
+    interactive: true,
   });
 
   return {
