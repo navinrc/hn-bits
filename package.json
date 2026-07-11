@@ -6,6 +6,9 @@
   "bin": {
     "hn": "./dist/index.js"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "dev": "tsx src/index.tsx",
     "build": "tsc",
