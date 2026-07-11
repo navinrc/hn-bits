@@ -34,13 +34,27 @@ ollama serve           # if not already running as a service
 ollama pull llama3.2    # or any other chat-capable model
 ```
 
-**Setup** — create `~/.config/hn-bits/config.json` (one-time; override the path with `$HN_BITS_CONFIG`):
+**Setup** — one-time:
 
-```json
-{ "ollama": { "host": "http://localhost:11434", "model": "llama3.2" } }
+```bash
+hn config set ollama.host http://localhost:11434
+hn config set ollama.model llama3.2
 ```
 
-No `hn config` command — edit the file directly. Missing fields fall back to the defaults above; invalid JSON degrades to "AI disabled" with a warning rather than crashing the reader.
+Missing fields fall back to the defaults above; invalid JSON degrades to "AI disabled" with a warning rather than crashing the reader.
+
+### Configuration
+
+`hn config` reads/writes `~/.config/hn-bits/config.json` (override the path with `$HN_BITS_CONFIG`) — no need to hand-edit JSON:
+
+```bash
+hn config list                        # every known key + current value
+hn config get ollama.model            # single value, raw
+hn config set ollama.model llama3.2   # validates + writes
+hn config unset ollama.model          # removes a key
+```
+
+Sensitive values (e.g. a future Telegram bot token) print masked in `list` but raw from `get`, so scripts can still consume them. File format is plain JSON — hand-editing still works if you prefer it.
 
 ### Themes
 

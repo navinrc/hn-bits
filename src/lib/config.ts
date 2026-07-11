@@ -7,13 +7,24 @@ export interface Config {
     host: string;
     model: string;
   };
+  telegram?: {
+    enabled: boolean;
+    botToken?: string;
+    chatId?: string;
+  };
+  desktopNotifications?: {
+    enabled: boolean;
+    timeoutSeconds: number;
+  };
 }
 
+export const DEFAULT_OLLAMA_CONFIG = {
+  host: 'http://localhost:11434',
+  model: 'llama3.2',
+};
+
 const DEFAULTS: Config = {
-  ollama: {
-    host: 'http://localhost:11434',
-    model: 'llama3.2',
-  },
+  ollama: DEFAULT_OLLAMA_CONFIG,
 };
 
 /** Shown in the summary panel / Ask AI view when no config file is present. */
@@ -24,7 +35,7 @@ export const AI_SETUP_HINT_LINES = [
   '   { "ollama": { "host": "http://localhost:11434", "model": "llama3.2" } }',
 ];
 
-function configPath(): string {
+export function configPath(): string {
   return process.env.HN_BITS_CONFIG || join(homedir(), '.config', 'hn-bits', 'config.json');
 }
 
@@ -47,6 +58,11 @@ export function loadConfig(): Config | null {
       ollama: {
         host: parsed.ollama?.host ?? DEFAULTS.ollama.host,
         model: parsed.ollama?.model ?? DEFAULTS.ollama.model,
+      },
+      telegram: parsed.telegram,
+      desktopNotifications: parsed.desktopNotifications && {
+        enabled: parsed.desktopNotifications.enabled,
+        timeoutSeconds: parsed.desktopNotifications.timeoutSeconds ?? 10,
       },
     };
   } catch (err) {

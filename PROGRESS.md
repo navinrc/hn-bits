@@ -75,8 +75,19 @@ Summaries (`s`) and Ask AI (`a`) grounded in the story's article + comment threa
 
 V2 is feature-complete against `specs/v2/`. Not yet done: everything in v2/00's "Out of V2" list (bookmarks/subscriptions/watcher/notifications/SQLite are V3; no cloud providers; no chat/summary persistence).
 
+## V2.5 — Config CLI (specs/v2.5/)
+
+Small slice between V2 and V3: hand-editing nested JSON for a Telegram bot token is worse than a few CLI commands, so this ships ahead of the rest of V3.
+
+| Phase | Status | Notes |
+|-------|--------|-------|
+| 1: `hn config get/set/unset/list` | done | matches `specs/v2.5/01-config-cli.md`; `Config` interface (`lib/config.ts`) gains optional `telegram.{enabled,botToken,chatId}` and `desktopNotifications.{enabled,timeoutSeconds}` (`timeoutSeconds` defaults to 10 only when the section is present), `configPath()` exported; new `lib/configKeys.ts` (whitelisted `CONFIG_KEYS` schema, `parseValue`/`formatValue` with masking for `sensitive` keys) and `lib/configStore.ts` (`readRawConfig`/`writeRawConfig` — first write path this app has had, `getConfigValue`/`setConfigValue`/`unsetConfigValue`/`listConfigEntries`); wired into `src/index.tsx` as a headless `config` subcommand (`hn theme` pattern — plain `console.log`, no Ink). Reverses `specs/v2/01-config.md`'s "no `hn config` subcommand" decision; `specs/v3/04-notifications.md` updated so Telegram activation is explicit `telegram.enabled` (symmetric with `desktopNotifications.enabled`) rather than bare section presence. Verified: `npm test` (24 new/updated tests across `config.test.ts`/`configStore.test.ts`, 190 total passing), `npm run build`, and live CLI round-trips (`set`/`get`/`unset`/`list`, masking, unknown-key/bad-type/missing-arg all exit 1) |
+
+V2.5 is feature-complete against `specs/v2.5/`.
+
 ## Known gaps / follow-ups
 
 - V1.6 phases 1–8 complete; V1.6 is feature-complete against `specs/v1.6/`.
 - V2 phases 1–4 complete; V2 is feature-complete against `specs/v2/`.
+- V2.5 phase 1 complete; V2.5 is feature-complete against `specs/v2.5/`.
 - Next: V3 (subscriptions + watcher + Telegram + SQLite + bookmarks) per `specs/v3/`.
