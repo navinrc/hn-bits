@@ -3,6 +3,10 @@
   "version": "0.2.0",
   "description": "Terminal-first Hacker News client",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/navinrc/hn-bits.git"
+  },
   "bin": {
     "hn": "./dist/index.js"
   },
