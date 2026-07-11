@@ -19,6 +19,7 @@ export const LIST_KEYS: readonly KeyBinding[] = [
   { key: 'o', label: 'browser' },
   { key: 'r', label: 'refresh' },
   { key: '/', label: 'search' },
+  { key: 's', label: 'summary' },
 ];
 
 export const COMMENTS_KEYS: readonly KeyBinding[] = [
@@ -28,6 +29,7 @@ export const COMMENTS_KEYS: readonly KeyBinding[] = [
   { key: 'gg/G', label: 'top/bottom' },
   { key: 'o', label: 'browser' },
   { key: 'r', label: 'reload' },
+  { key: 's', label: 'summary' },
   { key: 'esc', label: 'back' },
 ];
 
@@ -37,6 +39,7 @@ export const SEARCH_RESULTS_KEYS: readonly KeyBinding[] = [
   { key: 'enter', label: 'comments' },
   { key: 'o', label: 'browser' },
   { key: '/', label: 'new search' },
+  { key: 's', label: 'summary' },
   { key: 'esc', label: 'back/quit' },
 ];
 

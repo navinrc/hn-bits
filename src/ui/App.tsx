@@ -1,6 +1,7 @@
 import { useState, type JSX, type ReactNode } from 'react';
 import { useApp, useInput } from 'ink';
 import type { Feed, Story } from '../api/firebase.js';
+import { loadConfig, type Config } from '../lib/config.js';
 import { Comments } from './Comments.js';
 import { HelpOverlay } from './HelpOverlay.js';
 import { COMMENTS_KEYS, LIST_KEYS, SEARCH_RESULTS_KEYS, footerHint, type KeyBinding } from './keymap.js';
@@ -27,6 +28,7 @@ export function App({ initialQuery }: AppProps): JSX.Element {
     initialQuery ? { name: 'search', query: initialQuery, from: 'cli' } : { name: 'list' },
   );
   const [helpOpen, setHelpOpen] = useState(false);
+  const [config] = useState(loadConfig);
   const { exit } = useApp();
 
   useInput((input) => {
@@ -35,7 +37,7 @@ export function App({ initialQuery }: AppProps): JSX.Element {
     if (input === '?' && view.name !== 'search-input') return setHelpOpen(true);
   });
 
-  const ctx: ViewContext = { feed, setFeed, setView, exit };
+  const ctx: ViewContext = { feed, config, setFeed, setView, exit };
 
   return (
     <Screen>
@@ -50,6 +52,7 @@ export function App({ initialQuery }: AppProps): JSX.Element {
 
 interface ViewContext {
   feed: Feed;
+  config: Config | null;
   setFeed: (feed: Feed) => void;
   setView: (view: View) => void;
   exit: () => void;
@@ -82,10 +85,11 @@ function helpFor(view: View): { title: string; keys: readonly KeyBinding[] } {
   return { title: 'story list', keys: LIST_KEYS };
 }
 
-function renderList({ feed, setFeed, setView }: ViewContext): JSX.Element {
+function renderList({ feed, config, setFeed, setView }: ViewContext): JSX.Element {
   return (
     <StoryList
       feed={feed}
+      config={config}
       onFeedChange={setFeed}
       onSelectStory={(story) => setView({ name: 'comments', story, returnTo: { name: 'list' } })}
       onSearchRequested={() => setView({ name: 'search-input', from: 'tui' })}
@@ -93,10 +97,11 @@ function renderList({ feed, setFeed, setView }: ViewContext): JSX.Element {
   );
 }
 
-function renderSearch(view: View & { name: 'search' }, { setView, exit }: ViewContext): JSX.Element {
+function renderSearch(view: View & { name: 'search' }, { config, setView, exit }: ViewContext): JSX.Element {
   return (
     <SearchResults
       query={view.query}
+      config={config}
       onSelectStory={(story) =>
         setView({ name: 'comments', story, returnTo: { name: 'search', query: view.query, from: view.from } })
       }
@@ -106,6 +111,6 @@ function renderSearch(view: View & { name: 'search' }, { setView, exit }: ViewCo
   );
 }
 
-function renderComments(view: View & { name: 'comments' }, { setView }: ViewContext): JSX.Element {
-  return <Comments story={view.story} onBack={() => setView(view.returnTo)} />;
+function renderComments(view: View & { name: 'comments' }, { config, setView }: ViewContext): JSX.Element {
+  return <Comments story={view.story} config={config} onBack={() => setView(view.returnTo)} />;
 }

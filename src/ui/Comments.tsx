@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type JSX } from 'react';
 import { Box, Text, useInput, useWindowSize, type Key } from 'ink';
 import open from 'open';
+import { buildCommentsSummaryPrompt } from '../ai/summaryPrompts.js';
 import { fetchComments, type CommentNode } from '../api/algolia.js';
 import { hnItemUrl, type Story } from '../api/firebase.js';
 import {
@@ -13,6 +14,7 @@ import {
   type FlatComment,
   type RevealState,
 } from '../lib/commentTree.js';
+import type { Config } from '../lib/config.js';
 import { tokenizeContacts, type TextToken } from '../lib/contactHighlight.js';
 import { formatAge } from '../lib/format.js';
 import { htmlToText } from '../lib/html.js';
@@ -21,6 +23,7 @@ import { ensureVisibleLines, sliceByLines, wrapPlainText } from '../lib/viewport
 import { COMMENTS_KEYS, footerRows } from './keymap.js';
 import { HEADER_ROWS } from './Layout.js';
 import { LoadingIndicator } from './LoadingIndicator.js';
+import { SummaryPanel } from './SummaryPanel.js';
 import { theme } from './theme.js';
 
 const HEADER_BORDER_LINES = 2;
@@ -40,12 +43,13 @@ export function commentsHeaderLines(story: Story, columns: number): number {
 
 interface CommentsProps {
   story: Story;
+  config: Config | null;
   onBack: () => void;
 }
 
 type Status = 'loading' | 'ready' | 'error';
 
-export function Comments({ story, onBack }: CommentsProps): JSX.Element {
+export function Comments({ story, config, onBack }: CommentsProps): JSX.Element {
   const { columns, rows } = useWindowSize();
   const headerLines = commentsHeaderLines(story, columns);
   const viewportLines = Math.max(1, rows - HEADER_ROWS - footerRows(COMMENTS_KEYS, columns) - headerLines);
@@ -59,6 +63,7 @@ export function Comments({ story, onBack }: CommentsProps): JSX.Element {
     revealed: new Set(),
   });
   const [selected, setSelected] = useState(0);
+  const [summaryOpen, setSummaryOpen] = useState(false);
   const pendingTopJump = useRef(false);
   const topLineRef = useRef(0);
   const { folded, headerOnly, revealed } = fold;
@@ -128,17 +133,20 @@ export function Comments({ story, onBack }: CommentsProps): JSX.Element {
     if (input === 'E') return resetFold();
     if (input === 'o') return openStory();
     if (input === 'r') return void load();
+    if (input === 's') return setSummaryOpen(true);
   }
 
-  useInput(handleInput);
+  useInput(handleInput, { isActive: !summaryOpen });
 
   if (status === 'loading') return <LoadingIndicator label="Loading comments..." />;
   if (status === 'error') return <Text color={theme.colors.error}>{error} (r to retry)</Text>;
 
+  const panelHeight = summaryOpen ? Math.max(6, Math.floor(viewportLines / 2)) : 0;
+  const listViewportLines = Math.max(1, viewportLines - panelHeight);
   const heights = rowsData.map((row) => row.lines.length);
-  const topLine = ensureVisibleLines(heights, clampedSelected, topLineRef.current, viewportLines);
+  const topLine = ensureVisibleLines(heights, clampedSelected, topLineRef.current, listViewportLines);
   topLineRef.current = topLine;
-  const { first, last, clipTop, clipBottom } = sliceByLines(heights, topLine, viewportLines);
+  const { first, last, clipTop, clipBottom } = sliceByLines(heights, topLine, listViewportLines);
 
   return (
     <Box flexDirection="column">
@@ -158,6 +166,15 @@ export function Comments({ story, onBack }: CommentsProps): JSX.Element {
           />
         );
       })}
+      {summaryOpen && (
+        <SummaryPanel
+          config={config}
+          buildPrompt={() => Promise.resolve(buildCommentsSummaryPrompt(story, comments))}
+          height={panelHeight}
+          width={columns}
+          onClose={() => setSummaryOpen(false)}
+        />
+      )}
     </Box>
   );
 }

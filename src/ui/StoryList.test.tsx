@@ -49,6 +49,7 @@ function renderList() {
   const instance = render(
     <StoryList
       feed="top"
+      config={null}
       onFeedChange={onFeedChange}
       onSelectStory={onSelectStory}
       onSearchRequested={onSearchRequested}
@@ -100,6 +101,17 @@ describe('StoryList', () => {
     expect(fetchStories).toHaveBeenCalledTimes(2);
     expect(fetchStories).toHaveBeenLastCalledWith(ALL_IDS.slice(30, 50));
 
+    instance.unmount();
+  });
+
+  it('opens the summary panel on s, showing the setup hint with no config', async () => {
+    const { instance } = renderList();
+    await instance.waitUntilRenderFlush();
+
+    instance.stdin.writeInput('s');
+    await instance.waitUntilRenderFlush();
+
+    expect(instance.lastFrame()).toContain('AI not configured');
     instance.unmount();
   });
 });

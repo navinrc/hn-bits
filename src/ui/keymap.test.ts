@@ -5,9 +5,9 @@ import { COMMENTS_KEYS, GLOBAL_KEYS, LIST_KEYS, SEARCH_RESULTS_KEYS, footerHint 
 // (StoryList.tsx, Comments.tsx, SearchResults.tsx, App.tsx).
 const HANDLED = {
   global: ['q', '?'],
-  list: ['j/k', '←/→', 't/n/b', 'gg/G', 'enter', 'o', 'r', '/'],
-  comments: ['j/k', 'space', 'C/E', 'gg/G', 'o', 'r', 'esc'],
-  searchResults: ['j/k', 'gg/G', 'enter', 'o', '/', 'esc'],
+  list: ['j/k', '←/→', 't/n/b', 'gg/G', 'enter', 'o', 'r', '/', 's'],
+  comments: ['j/k', 'space', 'C/E', 'gg/G', 'o', 'r', 's', 'esc'],
+  searchResults: ['j/k', 'gg/G', 'enter', 'o', '/', 's', 'esc'],
 };
 
 function keys(bindings: readonly { key: string }[]): string[] {

@@ -37,7 +37,13 @@ function renderResults() {
   const onExit = vi.fn();
   const onSearchAgain = vi.fn();
   const instance = render(
-    <SearchResults query="rust" onSelectStory={onSelectStory} onExit={onExit} onSearchAgain={onSearchAgain} />,
+    <SearchResults
+      query="rust"
+      config={null}
+      onSelectStory={onSelectStory}
+      onExit={onExit}
+      onSearchAgain={onSearchAgain}
+    />,
     80,
     14,
   );
@@ -68,6 +74,17 @@ describe('SearchResults', () => {
     expect(searchStories).toHaveBeenCalledTimes(2);
     expect(searchStories).toHaveBeenLastCalledWith('rust', 1);
 
+    instance.unmount();
+  });
+
+  it('opens the summary panel on s, showing the setup hint with no config', async () => {
+    const { instance } = renderResults();
+    await instance.waitUntilRenderFlush();
+
+    instance.stdin.writeInput('s');
+    await instance.waitUntilRenderFlush();
+
+    expect(instance.lastFrame()).toContain('AI not configured');
     instance.unmount();
   });
 });
