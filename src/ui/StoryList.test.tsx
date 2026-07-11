@@ -46,17 +46,20 @@ function renderList() {
   const onFeedChange = vi.fn();
   const onSelectStory = vi.fn();
   const onSearchRequested = vi.fn();
+  const onAskAI = vi.fn();
   const instance = render(
     <StoryList
       feed="top"
+      config={null}
       onFeedChange={onFeedChange}
       onSelectStory={onSelectStory}
       onSearchRequested={onSearchRequested}
+      onAskAI={onAskAI}
     />,
     80,
     14,
   );
-  return { instance, onFeedChange, onSelectStory, onSearchRequested };
+  return { instance, onFeedChange, onSelectStory, onSearchRequested, onAskAI };
 }
 
 describe('StoryList', () => {
@@ -100,6 +103,28 @@ describe('StoryList', () => {
     expect(fetchStories).toHaveBeenCalledTimes(2);
     expect(fetchStories).toHaveBeenLastCalledWith(ALL_IDS.slice(30, 50));
 
+    instance.unmount();
+  });
+
+  it('opens the summary panel on s, showing the setup hint with no config', async () => {
+    const { instance } = renderList();
+    await instance.waitUntilRenderFlush();
+
+    instance.stdin.writeInput('s');
+    await instance.waitUntilRenderFlush();
+
+    expect(instance.lastFrame()).toContain('AI not configured');
+    instance.unmount();
+  });
+
+  it('calls onAskAI with the selected story on a', async () => {
+    const { instance, onAskAI } = renderList();
+    await instance.waitUntilRenderFlush();
+
+    instance.stdin.writeInput('a');
+    await instance.waitUntilRenderFlush();
+
+    expect(onAskAI).toHaveBeenCalledWith(expect.objectContaining({ id: 1 }));
     instance.unmount();
   });
 });

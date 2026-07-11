@@ -1,6 +1,9 @@
 import { useState, type JSX, type ReactNode } from 'react';
 import { useApp, useInput } from 'ink';
+import type { CommentNode } from '../api/algolia.js';
 import type { Feed, Story } from '../api/firebase.js';
+import { loadConfig, type Config } from '../lib/config.js';
+import { AskAI } from './AskAI.js';
 import { Comments } from './Comments.js';
 import { HelpOverlay } from './HelpOverlay.js';
 import { COMMENTS_KEYS, LIST_KEYS, SEARCH_RESULTS_KEYS, footerHint, type KeyBinding } from './keymap.js';
@@ -11,10 +14,12 @@ import { StoryList } from './StoryList.js';
 import { TabBar } from './TabBar.js';
 
 type ListLikeView = { name: 'list' } | { name: 'search'; query: string; from: 'tui' | 'cli' };
+type CommentsView = { name: 'comments'; story: Story; returnTo: ListLikeView };
+type NonAskView = ListLikeView | CommentsView;
 
 type View =
-  | ListLikeView
-  | { name: 'comments'; story: Story; returnTo: ListLikeView }
+  | NonAskView
+  | { name: 'ask'; story: Story; comments: CommentNode[] | null; returnTo: NonAskView }
   | { name: 'search-input'; from: 'tui' | 'cli' };
 
 interface AppProps {
@@ -27,15 +32,17 @@ export function App({ initialQuery }: AppProps): JSX.Element {
     initialQuery ? { name: 'search', query: initialQuery, from: 'cli' } : { name: 'list' },
   );
   const [helpOpen, setHelpOpen] = useState(false);
+  const [config] = useState(loadConfig);
   const { exit } = useApp();
 
   useInput((input) => {
     if (helpOpen) return setHelpOpen(false);
-    if (input === 'q' && view.name !== 'search-input') return exit();
-    if (input === '?' && view.name !== 'search-input') return setHelpOpen(true);
+    if (view.name === 'search-input' || view.name === 'ask') return;
+    if (input === 'q') return exit();
+    if (input === '?') return setHelpOpen(true);
   });
 
-  const ctx: ViewContext = { feed, setFeed, setView, exit };
+  const ctx: ViewContext = { feed, config, setFeed, setView, exit };
 
   return (
     <Screen>
@@ -50,6 +57,7 @@ export function App({ initialQuery }: AppProps): JSX.Element {
 
 interface ViewContext {
   feed: Feed;
+  config: Config | null;
   setFeed: (feed: Feed) => void;
   setView: (view: View) => void;
   exit: () => void;
@@ -59,6 +67,7 @@ function renderBody(view: View, ctx: ViewContext): JSX.Element | null {
   if (view.name === 'list') return renderList(ctx);
   if (view.name === 'search') return renderSearch(view, ctx);
   if (view.name === 'search-input') return null;
+  if (view.name === 'ask') return renderAskAI(view, ctx);
   return renderComments(view, ctx);
 }
 
@@ -71,6 +80,7 @@ function renderFooter(view: View, ctx: ViewContext): ReactNode {
       />
     );
   }
+  if (view.name === 'ask') return null;
   if (view.name === 'list') return footerHint(LIST_KEYS);
   if (view.name === 'comments') return footerHint(COMMENTS_KEYS);
   return footerHint(SEARCH_RESULTS_KEYS);
@@ -82,30 +92,51 @@ function helpFor(view: View): { title: string; keys: readonly KeyBinding[] } {
   return { title: 'story list', keys: LIST_KEYS };
 }
 
-function renderList({ feed, setFeed, setView }: ViewContext): JSX.Element {
+function renderList({ feed, config, setFeed, setView }: ViewContext): JSX.Element {
   return (
     <StoryList
       feed={feed}
+      config={config}
       onFeedChange={setFeed}
       onSelectStory={(story) => setView({ name: 'comments', story, returnTo: { name: 'list' } })}
       onSearchRequested={() => setView({ name: 'search-input', from: 'tui' })}
+      onAskAI={(story) => setView({ name: 'ask', story, comments: null, returnTo: { name: 'list' } })}
     />
   );
 }
 
-function renderSearch(view: View & { name: 'search' }, { setView, exit }: ViewContext): JSX.Element {
+function renderSearch(view: View & { name: 'search' }, { config, setView, exit }: ViewContext): JSX.Element {
+  const returnTo: ListLikeView = { name: 'search', query: view.query, from: view.from };
   return (
     <SearchResults
       query={view.query}
-      onSelectStory={(story) =>
-        setView({ name: 'comments', story, returnTo: { name: 'search', query: view.query, from: view.from } })
-      }
+      config={config}
+      onSelectStory={(story) => setView({ name: 'comments', story, returnTo })}
       onExit={() => (view.from === 'tui' ? setView({ name: 'list' }) : exit())}
       onSearchAgain={() => setView({ name: 'search-input', from: view.from })}
+      onAskAI={(story) => setView({ name: 'ask', story, comments: null, returnTo })}
     />
   );
 }
 
-function renderComments(view: View & { name: 'comments' }, { setView }: ViewContext): JSX.Element {
-  return <Comments story={view.story} onBack={() => setView(view.returnTo)} />;
+function renderComments(view: View & { name: 'comments' }, { config, setView }: ViewContext): JSX.Element {
+  return (
+    <Comments
+      story={view.story}
+      config={config}
+      onBack={() => setView(view.returnTo)}
+      onAskAI={(comments) => setView({ name: 'ask', story: view.story, comments, returnTo: view })}
+    />
+  );
+}
+
+function renderAskAI(view: View & { name: 'ask' }, { config, setView }: ViewContext): JSX.Element {
+  return (
+    <AskAI
+      story={view.story}
+      comments={view.comments}
+      config={config}
+      onBack={() => setView(view.returnTo)}
+    />
+  );
 }

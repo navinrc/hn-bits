@@ -36,12 +36,20 @@ function renderResults() {
   const onSelectStory = vi.fn();
   const onExit = vi.fn();
   const onSearchAgain = vi.fn();
+  const onAskAI = vi.fn();
   const instance = render(
-    <SearchResults query="rust" onSelectStory={onSelectStory} onExit={onExit} onSearchAgain={onSearchAgain} />,
+    <SearchResults
+      query="rust"
+      config={null}
+      onSelectStory={onSelectStory}
+      onExit={onExit}
+      onSearchAgain={onSearchAgain}
+      onAskAI={onAskAI}
+    />,
     80,
     14,
   );
-  return { instance, onSelectStory, onExit, onSearchAgain };
+  return { instance, onSelectStory, onExit, onSearchAgain, onAskAI };
 }
 
 describe('SearchResults', () => {
@@ -68,6 +76,28 @@ describe('SearchResults', () => {
     expect(searchStories).toHaveBeenCalledTimes(2);
     expect(searchStories).toHaveBeenLastCalledWith('rust', 1);
 
+    instance.unmount();
+  });
+
+  it('opens the summary panel on s, showing the setup hint with no config', async () => {
+    const { instance } = renderResults();
+    await instance.waitUntilRenderFlush();
+
+    instance.stdin.writeInput('s');
+    await instance.waitUntilRenderFlush();
+
+    expect(instance.lastFrame()).toContain('AI not configured');
+    instance.unmount();
+  });
+
+  it('calls onAskAI with the selected story on a', async () => {
+    const { instance, onAskAI } = renderResults();
+    await instance.waitUntilRenderFlush();
+
+    instance.stdin.writeInput('a');
+    await instance.waitUntilRenderFlush();
+
+    expect(onAskAI).toHaveBeenCalledWith(expect.objectContaining({ id: 1 }));
     instance.unmount();
   });
 });

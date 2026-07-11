@@ -43,8 +43,9 @@ beforeEach(() => {
 
 function renderComments() {
   const onBack = vi.fn();
-  const instance = render(<Comments story={story} onBack={onBack} />, 80, 14);
-  return { instance, onBack };
+  const onAskAI = vi.fn();
+  const instance = render(<Comments story={story} config={null} onBack={onBack} onAskAI={onAskAI} />, 80, 14);
+  return { instance, onBack, onAskAI };
 }
 
 describe('Comments', () => {
@@ -193,6 +194,28 @@ describe('Comments', () => {
     expect(frame).not.toContain('carol');
     expect(frame).toContain('1 reply');
 
+    instance.unmount();
+  });
+
+  it('opens the summary panel on s, showing the setup hint with no config', async () => {
+    const { instance } = renderComments();
+    await instance.waitUntilRenderFlush();
+
+    instance.stdin.writeInput('s');
+    await instance.waitUntilRenderFlush();
+
+    expect(instance.lastFrame()).toContain('AI not configured');
+    instance.unmount();
+  });
+
+  it('calls onAskAI with the loaded comment tree on a', async () => {
+    const { instance, onAskAI } = renderComments();
+    await instance.waitUntilRenderFlush();
+
+    instance.stdin.writeInput('a');
+    await instance.waitUntilRenderFlush();
+
+    expect(onAskAI).toHaveBeenCalledWith(tree);
     instance.unmount();
   });
 });

@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState, type JSX } from 'react';
 import { Box, Text, useInput, useWindowSize, type Key } from 'ink';
 import open from 'open';
+import { buildListSummaryPrompt } from '../ai/summaryPrompts.js';
 import { searchStories } from '../api/algolia.js';
 import { hnItemUrl, type Story } from '../api/firebase.js';
+import type { Config } from '../lib/config.js';
 import { clampSelection } from '../lib/listNavigation.js';
 import { ensureVisibleLines, shouldFetchMore } from '../lib/viewport.js';
 import { footerRows, SEARCH_RESULTS_KEYS } from './keymap.js';
@@ -10,6 +12,7 @@ import { HEADER_ROWS } from './Layout.js';
 import { LoadingIndicator } from './LoadingIndicator.js';
 import { STORY_ROW_HEIGHT } from './StoryRow.js';
 import { StoryListView } from './StoryListView.js';
+import { SummaryPanel } from './SummaryPanel.js';
 import { theme } from './theme.js';
 
 const FETCH_THRESHOLD = 10;
@@ -17,14 +20,23 @@ const HEADER_LINES = 1;
 
 interface SearchResultsProps {
   query: string;
+  config: Config | null;
   onSelectStory: (story: Story) => void;
   onExit: () => void;
   onSearchAgain: () => void;
+  onAskAI: (story: Story) => void;
 }
 
 type Status = 'loading' | 'ready' | 'error';
 
-export function SearchResults({ query, onSelectStory, onExit, onSearchAgain }: SearchResultsProps): JSX.Element {
+export function SearchResults({
+  query,
+  config,
+  onSelectStory,
+  onExit,
+  onSearchAgain,
+  onAskAI,
+}: SearchResultsProps): JSX.Element {
   const { columns, rows } = useWindowSize();
   const bodyHeight = Math.max(1, rows - HEADER_ROWS - footerRows(SEARCH_RESULTS_KEYS, columns) - HEADER_LINES);
 
@@ -35,6 +47,7 @@ export function SearchResults({ query, onSelectStory, onExit, onSearchAgain }: S
   const [status, setStatus] = useState<Status>('loading');
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
+  const [summaryOpen, setSummaryOpen] = useState(false);
   const token = useRef(0);
   const nextPage = useRef(0);
   const topLineRef = useRef(0);
@@ -105,18 +118,22 @@ export function SearchResults({ query, onSelectStory, onExit, onSearchAgain }: S
     if (input === 'G') return setSelected(Math.max(0, stories.length - 1));
     if (input === 'o') return openSelectedStory();
     if (input === 'r' && status === 'error') return void loadFirstPage();
+    if (input === 's' && stories[selected]) return setSummaryOpen(true);
+    if (input === 'a' && stories[selected]) return onAskAI(stories[selected]);
     if (key.return && stories[selected]) return onSelectStory(stories[selected]);
   }
 
-  useInput(handleInput);
+  useInput(handleInput, { isActive: !summaryOpen });
 
   if (status === 'loading') return <LoadingIndicator label="Searching..." />;
   if (status === 'error') return <Text color={theme.colors.error}>{error} (r to retry)</Text>;
 
-  const listHeight = loadingMore ? Math.max(1, bodyHeight - 1) : bodyHeight;
+  const panelHeight = summaryOpen ? Math.max(6, Math.floor(bodyHeight / 2)) : 0;
+  const listHeight = Math.max(1, (loadingMore ? bodyHeight - 1 : bodyHeight) - panelHeight);
   const heights = stories.map(() => STORY_ROW_HEIGHT);
   const topLine = ensureVisibleLines(heights, selected, topLineRef.current, listHeight);
   topLineRef.current = topLine;
+  const selectedStory = stories[selected];
 
   return (
     <Box flexDirection="column">
@@ -126,6 +143,15 @@ export function SearchResults({ query, onSelectStory, onExit, onSearchAgain }: S
       </Text>
       <StoryListView stories={stories} selected={selected} topLine={topLine} height={listHeight} width={columns} />
       {loadingMore && <Text dimColor>loading more…</Text>}
+      {summaryOpen && selectedStory && (
+        <SummaryPanel
+          config={config}
+          buildPrompt={(signal) => buildListSummaryPrompt(selectedStory, signal)}
+          height={panelHeight}
+          width={columns}
+          onClose={() => setSummaryOpen(false)}
+        />
+      )}
     </Box>
   );
 }

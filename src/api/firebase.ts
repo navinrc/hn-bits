@@ -6,6 +6,7 @@ export interface Story {
   id: number;
   title: string;
   url?: string;
+  text?: string;
   by: string;
   score: number;
   descendants: number;
@@ -37,6 +38,7 @@ interface RawItem {
   dead?: boolean;
   title?: string;
   url?: string;
+  text?: string;
   by?: string;
   score?: number;
   descendants?: number;
@@ -56,6 +58,7 @@ export async function fetchStories(ids: number[]): Promise<Story[]> {
       id: it.id,
       title: it.title!,
       url: it.url,
+      text: it.text,
       by: it.by ?? '?',
       score: it.score ?? 0,
       descendants: it.descendants ?? 0,

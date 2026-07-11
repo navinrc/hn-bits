@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState, type JSX } from 'react';
 import { Box, Text, useInput, useWindowSize, type Key } from 'ink';
 import open from 'open';
+import { buildListSummaryPrompt } from '../ai/summaryPrompts.js';
 import { fetchStories, fetchStoryIds, hnItemUrl, type Feed, type Story } from '../api/firebase.js';
+import type { Config } from '../lib/config.js';
 import { clampSelection, mapFeedKey, nextFeed, previousFeed } from '../lib/listNavigation.js';
 import { ensureVisibleLines, shouldFetchMore } from '../lib/viewport.js';
 import { footerRows, LIST_KEYS } from './keymap.js';
@@ -9,6 +11,7 @@ import { HEADER_ROWS } from './Layout.js';
 import { LoadingIndicator } from './LoadingIndicator.js';
 import { STORY_ROW_HEIGHT } from './StoryRow.js';
 import { StoryListView } from './StoryListView.js';
+import { SummaryPanel } from './SummaryPanel.js';
 import { theme } from './theme.js';
 
 const BATCH_SIZE = 30;
@@ -16,14 +19,23 @@ const FETCH_THRESHOLD = 10;
 
 interface StoryListProps {
   feed: Feed;
+  config: Config | null;
   onFeedChange: (feed: Feed) => void;
   onSelectStory: (story: Story) => void;
   onSearchRequested: () => void;
+  onAskAI: (story: Story) => void;
 }
 
 type Status = 'loading' | 'ready' | 'error';
 
-export function StoryList({ feed, onFeedChange, onSelectStory, onSearchRequested }: StoryListProps): JSX.Element {
+export function StoryList({
+  feed,
+  config,
+  onFeedChange,
+  onSelectStory,
+  onSearchRequested,
+  onAskAI,
+}: StoryListProps): JSX.Element {
   const { columns, rows } = useWindowSize();
   const bodyHeight = Math.max(1, rows - HEADER_ROWS - footerRows(LIST_KEYS, columns));
 
@@ -33,6 +45,7 @@ export function StoryList({ feed, onFeedChange, onSelectStory, onSearchRequested
   const [status, setStatus] = useState<Status>('loading');
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
+  const [summaryOpen, setSummaryOpen] = useState(false);
   const token = useRef(0);
   const pendingTopJump = useRef(false);
   const topLineRef = useRef(0);
@@ -109,23 +122,36 @@ export function StoryList({ feed, onFeedChange, onSelectStory, onSearchRequested
     if (input === 'G') return setSelected(Math.max(0, stories.length - 1));
     if (input === 'o') return openSelectedStory();
     if (input === 'r') return void loadFeed();
+    if (input === 's' && stories[selected]) return setSummaryOpen(true);
+    if (input === 'a' && stories[selected]) return onAskAI(stories[selected]);
     if (key.return && stories[selected]) return onSelectStory(stories[selected]);
   }
 
-  useInput(handleInput);
+  useInput(handleInput, { isActive: !summaryOpen });
 
   if (status === 'loading') return <LoadingIndicator label="Loading stories..." />;
   if (status === 'error') return <Text color={theme.colors.error}>{error} (r to retry)</Text>;
 
-  const listHeight = loadingMore ? Math.max(1, bodyHeight - 1) : bodyHeight;
+  const panelHeight = summaryOpen ? Math.max(6, Math.floor(bodyHeight / 2)) : 0;
+  const listHeight = Math.max(1, (loadingMore ? bodyHeight - 1 : bodyHeight) - panelHeight);
   const heights = stories.map(() => STORY_ROW_HEIGHT);
   const topLine = ensureVisibleLines(heights, selected, topLineRef.current, listHeight);
   topLineRef.current = topLine;
+  const selectedStory = stories[selected];
 
   return (
     <Box flexDirection="column">
       <StoryListView stories={stories} selected={selected} topLine={topLine} height={listHeight} width={columns} />
       {loadingMore && <Text dimColor>loading more…</Text>}
+      {summaryOpen && selectedStory && (
+        <SummaryPanel
+          config={config}
+          buildPrompt={(signal) => buildListSummaryPrompt(selectedStory, signal)}
+          height={panelHeight}
+          width={columns}
+          onClose={() => setSummaryOpen(false)}
+        />
+      )}
     </Box>
   );
 }
