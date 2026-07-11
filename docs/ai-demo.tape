@@ -7,7 +7,7 @@ Set Height 620
 Set Padding 10
 Set TypingSpeed 60ms
 
-Type "npx tsx src/index.tsx"
+Type "hn"
 Enter
 Sleep 3s
 
