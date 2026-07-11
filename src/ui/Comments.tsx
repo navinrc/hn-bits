@@ -45,11 +45,12 @@ interface CommentsProps {
   story: Story;
   config: Config | null;
   onBack: () => void;
+  onAskAI: (comments: CommentNode[]) => void;
 }
 
 type Status = 'loading' | 'ready' | 'error';
 
-export function Comments({ story, config, onBack }: CommentsProps): JSX.Element {
+export function Comments({ story, config, onBack, onAskAI }: CommentsProps): JSX.Element {
   const { columns, rows } = useWindowSize();
   const headerLines = commentsHeaderLines(story, columns);
   const viewportLines = Math.max(1, rows - HEADER_ROWS - footerRows(COMMENTS_KEYS, columns) - headerLines);
@@ -134,6 +135,7 @@ export function Comments({ story, config, onBack }: CommentsProps): JSX.Element 
     if (input === 'o') return openStory();
     if (input === 'r') return void load();
     if (input === 's') return setSummaryOpen(true);
+    if (input === 'a') return onAskAI(comments);
   }
 
   useInput(handleInput, { isActive: !summaryOpen });

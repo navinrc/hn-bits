@@ -24,11 +24,19 @@ interface SearchResultsProps {
   onSelectStory: (story: Story) => void;
   onExit: () => void;
   onSearchAgain: () => void;
+  onAskAI: (story: Story) => void;
 }
 
 type Status = 'loading' | 'ready' | 'error';
 
-export function SearchResults({ query, config, onSelectStory, onExit, onSearchAgain }: SearchResultsProps): JSX.Element {
+export function SearchResults({
+  query,
+  config,
+  onSelectStory,
+  onExit,
+  onSearchAgain,
+  onAskAI,
+}: SearchResultsProps): JSX.Element {
   const { columns, rows } = useWindowSize();
   const bodyHeight = Math.max(1, rows - HEADER_ROWS - footerRows(SEARCH_RESULTS_KEYS, columns) - HEADER_LINES);
 
@@ -111,6 +119,7 @@ export function SearchResults({ query, config, onSelectStory, onExit, onSearchAg
     if (input === 'o') return openSelectedStory();
     if (input === 'r' && status === 'error') return void loadFirstPage();
     if (input === 's' && stories[selected]) return setSummaryOpen(true);
+    if (input === 'a' && stories[selected]) return onAskAI(stories[selected]);
     if (key.return && stories[selected]) return onSelectStory(stories[selected]);
   }
 

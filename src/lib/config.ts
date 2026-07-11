@@ -16,6 +16,14 @@ const DEFAULTS: Config = {
   },
 };
 
+/** Shown in the summary panel / Ask AI view when no config file is present. */
+export const AI_SETUP_HINT_LINES = [
+  'AI not configured.',
+  '1. Install Ollama and pull a model:  ollama pull llama3.2',
+  '2. Create ~/.config/hn-bits/config.json:',
+  '   { "ollama": { "host": "http://localhost:11434", "model": "llama3.2" } }',
+];
+
 function configPath(): string {
   return process.env.HN_BITS_CONFIG || join(homedir(), '.config', 'hn-bits', 'config.json');
 }

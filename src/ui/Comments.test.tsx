@@ -43,8 +43,9 @@ beforeEach(() => {
 
 function renderComments() {
   const onBack = vi.fn();
-  const instance = render(<Comments story={story} config={null} onBack={onBack} />, 80, 14);
-  return { instance, onBack };
+  const onAskAI = vi.fn();
+  const instance = render(<Comments story={story} config={null} onBack={onBack} onAskAI={onAskAI} />, 80, 14);
+  return { instance, onBack, onAskAI };
 }
 
 describe('Comments', () => {
@@ -204,6 +205,17 @@ describe('Comments', () => {
     await instance.waitUntilRenderFlush();
 
     expect(instance.lastFrame()).toContain('AI not configured');
+    instance.unmount();
+  });
+
+  it('calls onAskAI with the loaded comment tree on a', async () => {
+    const { instance, onAskAI } = renderComments();
+    await instance.waitUntilRenderFlush();
+
+    instance.stdin.writeInput('a');
+    await instance.waitUntilRenderFlush();
+
+    expect(onAskAI).toHaveBeenCalledWith(tree);
     instance.unmount();
   });
 });

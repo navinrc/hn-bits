@@ -20,6 +20,14 @@ export class OllamaError extends Error {
 
 export class TimeoutError extends Error {}
 
+/** Renders a caught error as a user-facing hint, preferring our typed messages. */
+export function describeError(err: unknown): string {
+  if (err instanceof OllamaDownError || err instanceof ModelMissingError || err instanceof OllamaError || err instanceof TimeoutError) {
+    return err.message;
+  }
+  return (err as Error).message ?? 'unknown error';
+}
+
 const IDLE_TIMEOUT_MS = 60_000;
 
 interface ChatChunk {

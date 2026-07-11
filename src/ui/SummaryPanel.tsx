@@ -1,20 +1,13 @@
 import { useEffect, useRef, useState, type JSX } from 'react';
 import { Box, Text, useInput } from 'ink';
 import type { PromptResult } from '../ai/context.js';
-import { chatStream, ModelMissingError, OllamaDownError, OllamaError, TimeoutError, type ChatMessage } from '../ai/ollama.js';
-import type { Config } from '../lib/config.js';
+import { chatStream, describeError, type ChatMessage } from '../ai/ollama.js';
+import { AI_SETUP_HINT_LINES, type Config } from '../lib/config.js';
 import { wrapPlainText } from '../lib/viewport.js';
 import { theme } from './theme.js';
 
 const SYSTEM_PROMPT =
   'You are a concise assistant summarizing Hacker News content. Plain text only, no markdown headers. Max ~150 words.';
-
-const SETUP_HINT_LINES = [
-  'AI not configured.',
-  '1. Install Ollama and pull a model:  ollama pull llama3.2',
-  '2. Create ~/.config/hn-bits/config.json:',
-  '   { "ollama": { "host": "http://localhost:11434", "model": "llama3.2" } }',
-];
 
 interface SummaryPanelProps {
   config: Config | null;
@@ -25,18 +18,6 @@ interface SummaryPanelProps {
 }
 
 type Status = 'setup-hint' | 'preparing' | 'thinking' | 'streaming' | 'done' | 'error';
-
-function errorHint(err: unknown): string {
-  if (
-    err instanceof OllamaDownError ||
-    err instanceof ModelMissingError ||
-    err instanceof OllamaError ||
-    err instanceof TimeoutError
-  ) {
-    return err.message;
-  }
-  return (err as Error).message ?? 'unknown error';
-}
 
 export function SummaryPanel({ config, buildPrompt, height, width, onClose }: SummaryPanelProps): JSX.Element {
   const [status, setStatus] = useState<Status>(config ? 'preparing' : 'setup-hint');
@@ -75,7 +56,7 @@ export function SummaryPanel({ config, buildPrompt, height, width, onClose }: Su
     } catch (err) {
       if (myToken !== token.current) return;
       setStatus('error');
-      setError(errorHint(err));
+      setError(describeError(err));
       return;
     }
 
@@ -95,7 +76,7 @@ export function SummaryPanel({ config, buildPrompt, height, width, onClose }: Su
     } catch (err) {
       if (myToken !== token.current) return;
       setStatus('error');
-      setError(errorHint(err));
+      setError(describeError(err));
     }
   }
 
@@ -136,7 +117,7 @@ export function SummaryPanel({ config, buildPrompt, height, width, onClose }: Su
     >
       <Text color={theme.colors.title}>{headerLabel}</Text>
       {status === 'setup-hint' &&
-        SETUP_HINT_LINES.map((line) => (
+        AI_SETUP_HINT_LINES.map((line) => (
           <Text key={line} dimColor>
             {line}
           </Text>

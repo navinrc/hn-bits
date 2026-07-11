@@ -23,11 +23,19 @@ interface StoryListProps {
   onFeedChange: (feed: Feed) => void;
   onSelectStory: (story: Story) => void;
   onSearchRequested: () => void;
+  onAskAI: (story: Story) => void;
 }
 
 type Status = 'loading' | 'ready' | 'error';
 
-export function StoryList({ feed, config, onFeedChange, onSelectStory, onSearchRequested }: StoryListProps): JSX.Element {
+export function StoryList({
+  feed,
+  config,
+  onFeedChange,
+  onSelectStory,
+  onSearchRequested,
+  onAskAI,
+}: StoryListProps): JSX.Element {
   const { columns, rows } = useWindowSize();
   const bodyHeight = Math.max(1, rows - HEADER_ROWS - footerRows(LIST_KEYS, columns));
 
@@ -115,6 +123,7 @@ export function StoryList({ feed, config, onFeedChange, onSelectStory, onSearchR
     if (input === 'o') return openSelectedStory();
     if (input === 'r') return void loadFeed();
     if (input === 's' && stories[selected]) return setSummaryOpen(true);
+    if (input === 'a' && stories[selected]) return onAskAI(stories[selected]);
     if (key.return && stories[selected]) return onSelectStory(stories[selected]);
   }
 
