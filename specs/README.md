@@ -9,8 +9,8 @@ Terminal-first Hacker News client (`hn` binary). Specs versioned by release; eac
 | V1 | Browse + search + comments | **done** | [v1/](v1/00-overview.md) |
 | V1.5 | UI overhaul: fullscreen TUI, tabs, comment tree, theme palettes | **done** | [v1.5/](v1.5/00-overview.md) |
 | V1.6 | Visual rework: two-line story rows, bordered comments cards, collapsed-by-default threads, tab bar + polish + loader, comments polish (colors, fold states, contacts), navbar rule + selection/fold follow-ups | **done** | [v1.6/](v1.6/01-story-row-layout.md) |
-| V2 | Local AI: summaries + Ask AI (Ollama) | **done** | [v2/](v2/00-overview.md) |
-| V3 | Subscriptions + watcher + Telegram + SQLite + bookmarks | spec'd | [v3/](v3/00-overview.md) |
+| V2 | Local AI: summaries + Ask AI (Ollama) | spec'd | [v2/](v2/00-overview.md) |
+| V3 | Subscriptions + watcher + Telegram + desktop notify + SQLite + bookmarks | spec'd | [v3/](v3/00-overview.md) |
 
 ## Roadmap
 
@@ -38,7 +38,7 @@ flowchart LR
     subgraph V3 [V3 — radar]
         I[SQLite storage] --> J[subscriptions]
         J --> K[hn watch --once]
-        K --> L[Telegram notify]
+        K --> L[Telegram + desktop notify]
         I --> M[bookmarks]
     end
     V1 --> V15 --> V16 --> V2 --> V3

@@ -13,10 +13,9 @@ npm link   # exposes the `hn` binary
 ## Usage
 
 ```bash
-hn                  # fullscreen shell: tab bar (top/new/best/ask/show), continuous scroll
-hn search <query...>  # jump straight into search results
-hn theme            # show the active color theme and available palettes
-hn --theme dracula  # or: HN_THEME=dracula hn
+hn                    # fullscreen shell: top/new/best/ask/show tabs
+hn search <query...>  # search results
+hn --theme dracula    # themes: hn (default), mocha, dracula, tokyo, nord, gruvbox
 ```
 
 Press `?` from any view for the full keybinding help overlay.
@@ -92,24 +91,18 @@ Same as story list, minus the tab/feed keys, plus `/` to start a new search. `es
 ## Development
 
 ```bash
-npm run dev    # run the CLI from source (tsx)
+npm run dev    # run from source (tsx)
 npm test       # vitest
 npm run build  # tsc
 ```
 
-## Tech Stack
+## Tech stack
 
-- **Language**: TypeScript (strict), ESM, ES2022 target
-- **UI**: Ink `^7.1.0` (React renderer for terminals) + React `^19.2.7`
-- **CLI**: Commander `^15.0.0`
-- **Runtime**: `open` `^11.0.0`, native `fetch` — no HTTP client dep
-- **Data sources**: HN Firebase API + HN Algolia Search API — no backend/database
-- **Local AI**: [Ollama](https://ollama.com) (native `fetch` streaming, no SDK) + `@mozilla/readability` and `jsdom` for article extraction — optional, config-gated
-- **Build**: `tsc` — no bundler
-- **Dev runner**: `tsx` `^4.23.0`
-- **Tests**: Vitest `^4.1.10` + vendored Ink test harness (`src/test/inkHarness.ts`)
-- **Package manager**: npm
+- TypeScript (strict, ESM) + Ink (React for terminals)
+- Commander CLI, native `fetch`
+- HN Firebase + Algolia APIs — no backend, no database
+- Vitest
 
-## Specs and progress
+## Specs
 
 Implementation specs live in [`specs/`](specs/README.md); phase-by-phase status is tracked in [`PROGRESS.md`](PROGRESS.md). V1, V1.5, V1.6, and V2 (local AI) are feature-complete; V3 (subscriptions/watcher) is spec'd but not started.
