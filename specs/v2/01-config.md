@@ -7,7 +7,7 @@ First persistent artifact in the app. Exists **only** to configure AI; V1 featur
 1. `$HN_BITS_CONFIG` if set (absolute path to a JSON file).
 2. Else `~/.config/hn-bits/config.json` (XDG-ish, hardcoded — no `XDG_CONFIG_HOME` handling in V2; note as later nicety).
 
-No `hn config` subcommand — user edits the file directly. README/setup hint shows the snippet to paste.
+V2 shipped with no `hn config` subcommand — user edited the file directly; README/setup hint showed the snippet to paste. **Superseded in V2.5** ([../v2.5/01-config-cli.md](../v2.5/01-config-cli.md)): `hn config get/set/unset/list` now manages this file, needed once telegram/desktop keys arrive in V3.
 
 ## Schema
 

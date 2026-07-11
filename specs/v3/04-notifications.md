@@ -18,12 +18,13 @@ interface Notifier {
 
 Watcher takes `Notifier[]` — every configured notifier gets every match. V3 ships two implementations: `telegram.ts` and `desktop.ts`. Discord later = new `discord.ts` implementing `Notifier`, enabled by config presence.
 
-## Config (extends V2 config file — additive keys)
+## Config (extends V2 config file — additive keys; managed via `hn config`, [../v2.5/01-config-cli.md](../v2.5/01-config-cli.md))
 
 ```json
 {
   "ollama": { "...": "..." },
   "telegram": {
+    "enabled": true,
     "botToken": "123456:ABC-...",
     "chatId": "987654321"
   },
@@ -34,7 +35,14 @@ Watcher takes `Notifier[]` — every configured notifier gets every match. V3 sh
 }
 ```
 
-Telegram setup (documented in README): create bot via `@BotFather` → token; message the bot once, get chat id via `getUpdates`. Both values required. Desktop: section present with `enabled: true` activates it; `timeoutSeconds` optional, default 10. Each section is independent — either alone is valid; **neither** configured = exit 2 from watcher ([03-watcher.md](03-watcher.md)).
+```bash
+hn config set telegram.enabled true
+hn config set telegram.botToken 123456:ABC-...
+hn config set telegram.chatId 987654321
+hn config set desktopNotifications.enabled true
+```
+
+Telegram setup (documented in README): create bot via `@BotFather` → token; message the bot once, get chat id via `getUpdates`. Activation is explicit and symmetric with desktop: `telegram.enabled === true` (with `botToken`/`chatId` also set) turns it on; `desktopNotifications.enabled === true` turns that on (`timeoutSeconds` optional, default 10). Each notifier is independent — either enabled alone is valid; **neither** enabled = exit 2 from watcher ([03-watcher.md](03-watcher.md)).
 
 ## Telegram implementation (`telegram.ts`)
 

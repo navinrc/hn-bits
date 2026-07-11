@@ -42,11 +42,39 @@ describe('loadConfig', () => {
 
   it('ignores unknown extra keys', () => {
     const path = join(dir, 'config.json');
-    writeFileSync(path, JSON.stringify({ ollama: { model: 'phi3' }, telegram: { token: 'x' } }));
+    writeFileSync(path, JSON.stringify({ ollama: { model: 'phi3' }, foo: { bar: 'x' } }));
     process.env.HN_BITS_CONFIG = path;
     expect(loadConfig()).toEqual({
       ollama: { host: 'http://localhost:11434', model: 'phi3' },
     });
+  });
+
+  it('passes telegram config through as-is when present', () => {
+    const path = join(dir, 'config.json');
+    writeFileSync(path, JSON.stringify({ telegram: { enabled: true, botToken: 't', chatId: 'c' } }));
+    process.env.HN_BITS_CONFIG = path;
+    expect(loadConfig()?.telegram).toEqual({ enabled: true, botToken: 't', chatId: 'c' });
+  });
+
+  it('leaves telegram undefined when absent', () => {
+    const path = join(dir, 'config.json');
+    writeFileSync(path, JSON.stringify({}));
+    process.env.HN_BITS_CONFIG = path;
+    expect(loadConfig()?.telegram).toBeUndefined();
+  });
+
+  it('defaults desktopNotifications.timeoutSeconds to 10 when section present', () => {
+    const path = join(dir, 'config.json');
+    writeFileSync(path, JSON.stringify({ desktopNotifications: { enabled: true } }));
+    process.env.HN_BITS_CONFIG = path;
+    expect(loadConfig()?.desktopNotifications).toEqual({ enabled: true, timeoutSeconds: 10 });
+  });
+
+  it('leaves desktopNotifications undefined when absent', () => {
+    const path = join(dir, 'config.json');
+    writeFileSync(path, JSON.stringify({}));
+    process.env.HN_BITS_CONFIG = path;
+    expect(loadConfig()?.desktopNotifications).toBeUndefined();
   });
 
   it('warns and treats invalid JSON as absent, never throws', () => {
