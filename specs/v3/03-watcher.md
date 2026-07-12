@@ -61,10 +61,16 @@ flowchart TD
 [2026-07-07T10:30:04Z] done: 2 notified, 0 failed
 ```
 
-## Scheduling (documented in README, user's responsibility)
+## Scheduling (CLI-assisted, cron-based)
+
+Cron still owns scheduling — `hn watch --once` remains a plain one-shot with no daemon. What changed: the CLI now offers to install the cron line itself instead of leaving it purely to README instructions.
+
+`src/lib/schedule.ts` wraps `crontab -l`/`crontab -` (marker comment `# hn-bits watch` identifies the managed line; unrelated existing crontab entries are preserved untouched):
 
 ```cron
-*/30 * * * * /usr/local/bin/hn watch --once >> ~/.local/share/hn-bits/watch.log 2>&1
+*/30 * * * * <resolved hn path> watch --once >> ~/.local/share/hn-bits/watch.log 2>&1 # hn-bits watch
 ```
 
-macOS note: launchd equivalent acceptable; cron entry works on macOS too. 30 min default suggestion — window overlap (6 h) makes any cadence safe.
+- `hn sub add` prompts y/n to install this line the first time a subscription is added, if no `hn-bits` job is installed yet. Declining leaves the manual crontab line as a documented fallback (same as before this change).
+- `hn schedule status` / `hn schedule install` / `hn schedule remove` manage the same line directly, for anyone who declined the prompt, added subscriptions before this existed, or wants to remove it.
+- cron only (no launchd) — 30 min default, window overlap (6 h) makes any cadence safe.
