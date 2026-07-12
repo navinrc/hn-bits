@@ -40,25 +40,31 @@ Strict generalization of today's behavior: any subscription with `minComments ==
 subscription that predates this feature) behaves exactly as before — a single AND'able points floor.
 OR only activates once both thresholds are set to non-zero.
 
-**Why two server-filtered requests unioned, not Algolia `numericFilters` OR-groups or a single
-unfiltered fetch:** Algolia supports OR via nested-array `numericFilters` syntax, but that's
-unverified against the live `hn.algolia.com` endpoint and adds query-encoding complexity for no
-real gain. The first cut instead fetched one page with no server-side floor at all and filtered
-`passes()` client-side — but for high-volume queries that undercounts badly: the top-50-by-recency
-*unfiltered* pool gets crowded out by brand-new, zero-engagement submissions, pushing older
-qualifying stories outside the window before the OR check ever runs (e.g. `Claude Code: >=30 pts
-OR >=1 comment` returned 2 matches instead of the 5+ that individually satisfy each side).
+**Why native Algolia `numericFilters` OR, not client-side filtering:** Algolia's REST API supports
+OR via nested-array `numericFilters` — a flat array ANDs its entries, a nested array within it
+ORs them, e.g. `[a, [b, c]]` = `a AND (b OR c)`. Verified live against `hn.algolia.com`:
+
+```
+numericFilters=["created_at_i>1751000000",["points>=30","num_comments>=1"]]
+```
+
+against `query=OpenAI` returned exactly the OR-matching set (mix of high-point/low-comment and
+low-point/any-comment stories), confirming the syntax works cross-attribute on the live endpoint
+— the original "unverified" concern that ruled it out turned out to be wrong. Two earlier
+approaches were tried and discarded before landing here: fetching one unfiltered page and
+filtering client-side (undercounted — the raw page, capped before filtering, missed qualifying
+stories entirely for high-volume queries), and running two separately-filtered requests unioned
+client-side (correct, but an unnecessary extra round-trip once native OR was confirmed to work).
 
 - If only one threshold is active, push the matching server-side `numericFilters` entry
-  (`points>=N` or `num_comments>=N`) exactly as `points>=N` is pushed today — zero payload change
-  for existing single-threshold subscriptions.
-- If both are active, run two requests in parallel — one with `points>=N`, one with
-  `num_comments>=M` — each hitting the full 50-hit server-side cap like the single-threshold case
-  does, then union by story id (dedup), sort by recency, and trim to the caller's requested limit.
+  (`points>=N` or `num_comments>=N`) as a flat comma-joined string, exactly as `points>=N` is
+  pushed today — zero payload change for existing single-threshold subscriptions.
+- If both are active, push a single JSON-encoded nested-array `numericFilters` param:
+  `[created_at_i>X, [points>=N, num_comments>=M]]`. One request, server does the OR.
 
 Single change point in `src/api/algolia.ts`'s `searchRecent` — `watch.ts`, `SubscriptionMatches.tsx`,
 and `SubscriptionForm.tsx`'s live preview all pick this up by passing `minComments` through, no
-duplicated filter logic elsewhere. Costs one extra HTTP request only when both thresholds are set.
+duplicated filter logic elsewhere. Same request count and hit cap as the single-threshold case.
 
 ## CLI
 
