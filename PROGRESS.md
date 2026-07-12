@@ -131,6 +131,18 @@ New `ui.theme` config key, additive to V2.5's `hn config` CLI.
 
 V3.1 is feature-complete against `specs/v3.1/`.
 
+## V3.2 — Live in-TUI theme picker (specs/v3.2/)
+
+Change theme from inside a running session, no restart.
+
+| Phase | Status | Notes |
+|-------|--------|-------|
+| 1: reactive theme | done | Theme was a module-scoped singleton (`theme.ts`'s `export const theme = resolveTheme()`) read by 13 components at import time — turned reactive via a new `ThemeContext`/`useTheme()` pair; all 13 importers switched from the static import to the hook. `Comments.tsx`'s `buildHeaderSpans`/`tokenToSpan`/`buildRow` and `TabBar.tsx`'s `segmentColor` (module-level pure functions, can't call hooks) take `theme` as an explicit parameter instead. No behavior change on its own — `ThemeContext`'s default value is the same singleton every non-App render already saw |
+| 2: picker overlay | done | `T` (new `GLOBAL_KEYS` entry) opens `ThemePicker.tsx` — `SubscriptionsView`-style list over `paletteNames()`, cursor opens on the active theme, `j`/`k`/arrows move, `esc` cancels. `App.tsx` owns `paletteName`/`themePickerOpen` state, resolves `activeTheme` each render, provides it via `ThemeContext.Provider`; picker takes the same overlay slot as `HelpOverlay`. New `THEME_PICKER_KEYS` footer hint. Adding a global key lengthens every footer hint enough to wrap an extra line at 80 columns — bumped `Comments.test.tsx`'s fixed test terminal height by one row to keep existing assertions valid |
+| 3: persistence | done | `enter` in the picker calls `setConfigValue('ui.theme', name)` (reused as-is from V3.1) alongside the live `setPaletteName`, so the choice survives a restart; `esc` writes nothing. Verified live via tmux: `T` → navigate → `enter` recolors the whole UI immediately (confirmed via ANSI accent codes matching the target palette) |
+
+V3.2 is feature-complete against `specs/v3.2/`.
+
 ## Known gaps / follow-ups
 
 - V1.6 phases 1–8 complete; V1.6 is feature-complete against `specs/v1.6/`.
@@ -138,4 +150,5 @@ V3.1 is feature-complete against `specs/v3.1/`.
 - V2.5 phase 1 complete; V2.5 is feature-complete against `specs/v2.5/`.
 - V3 phases 1–6 complete; V3 is feature-complete against `specs/v3/`.
 - V3.1 phase 1 complete; V3.1 is feature-complete against `specs/v3.1/`.
+- V3.2 phases 1–3 complete; V3.2 is feature-complete against `specs/v3.2/`.
 - Next: the small slices V3.5 (desktop notify), V3.6 (Discord). Independent, can ship in any order.
