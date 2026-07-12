@@ -25,15 +25,17 @@ hn config set desktopNotifications.timeoutSeconds 10   # optional, default 10
 
 ## Implementation (`desktop.ts`)
 
-- **Binary discovery:** `alerter` looked up on `PATH` once per watcher run. Missing = one stderr warning `desktop: alerter not found (brew install vjeantet/tap/alerter), skipping` and the notifier is disabled for the run. Never exit 2; telegram unaffected.
+- **Binary discovery:** `alerter` looked up once per watcher run on `PATH`, then fallback dirs `/opt/homebrew/bin`, `/usr/local/bin`, `~/.local/bin` (cron runs with `PATH=/usr/bin:/bin`, which contains none of them). The wrapper invokes the discovered absolute path, not the bare name, for the same reason. Missing = one stderr warning `desktop: alerter not found (brew install vjeantet/tap/alerter), skipping` and the notifier is disabled for the run. Never exit 2; telegram unaffected.
 - **Desktop-only + missing binary:** the run stops after the warning with exit 0 and touches nothing — no queries, no `markSeen`, no `touchLastRun`. Matches are picked up by the first run after install instead of being silently marked seen.
 - **Invocation:** alerter has no `-open` flag and blocks until the notification is clicked, dismissed, or times out, printing the result. So `send()` spawns a detached `sh -c` wrapper (stdio ignored, `unref()`):
 
 ```sh
-r=$(alerter -title "🔔 <sub name>" -subtitle "<points> pts · <comments> comments" \
-    -message "<story title>" -actions Open -timeout <timeoutSeconds> -group hn-<subId>)
+r=$(alerter --title "🔔 <sub name>" --subtitle "<points> pts · <comments> comments" \
+    --message "<story title>" --actions Open --timeout <timeoutSeconds> --group hn-<subId>)
 case "$r" in @TIMEOUT|@CLOSED) ;; *) open "<url>" ;; esac
 ```
+
+alerter v26.5 (Swift rewrite) accepts only double-dash flags; the single-dash forms from the old README exit 64. Output tokens (`@TIMEOUT`/`@CLOSED`/`@CONTENTCLICKED`/`@ACTIONCLICKED`/action label) are unchanged.
 
 - **Click opens the story URL** (HN discussion link for text posts, same rule as the telegram message). Body click (`@CONTENTCLICKED`) and the `Open` action both open. Title and URL shell-escaped.
 - **Fire-and-forget:** `send()` resolves once the wrapper spawns; the wrapper, not the watcher, waits out the interaction, lives at most `timeoutSeconds`, and exits with the notification. Watcher exit is never delayed.

@@ -85,6 +85,9 @@ describe('createDesktopNotifier', () => {
     expect(command).toBe('sh');
     expect(args[0]).toBe('-c');
     expect(args[1]).not.toContain('evil');
+    // alerter v26.5 accepts only double-dash flags
+    expect(args[1]).toContain('--title "$1"');
+    expect(args[1]).toContain('--group "$5"');
     expect(args.slice(2)).toEqual([
       'sh',
       '🔔 postgres',
@@ -93,6 +96,7 @@ describe('createDesktopNotifier', () => {
       '15',
       'hn-7',
       'https://example.com/article',
+      expect.stringMatching(/\/alerter$/),
     ]);
     expect(options).toEqual({ detached: true, stdio: 'ignore' });
   });
@@ -100,7 +104,7 @@ describe('createDesktopNotifier', () => {
   it('opens the HN discussion link for text posts', async () => {
     await createDesktopNotifier({ timeoutSeconds: 10 })!.send({ subscription, story: { ...story, url: undefined } });
     const args = mocks.spawn.mock.calls[0]![1] as string[];
-    expect(args.at(-1)).toBe('https://news.ycombinator.com/item?id=41211001');
+    expect(args.at(-2)).toBe('https://news.ycombinator.com/item?id=41211001');
   });
 
   it('resolves immediately and unrefs without waiting for the wrapper', async () => {
