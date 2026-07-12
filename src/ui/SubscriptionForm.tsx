@@ -4,7 +4,7 @@ import { searchRecent } from '../api/algolia.js';
 import type { Story } from '../api/firebase.js';
 import { addSubscription, updateSubscription, type Subscription } from '../db/subscriptions.js';
 import { truncateTitle } from '../lib/format.js';
-import { theme } from './theme.js';
+import { useTheme } from './theme.js';
 
 const PREVIEW_DEBOUNCE_MS = 300;
 const PREVIEW_WINDOW_DAYS = 7;
@@ -32,6 +32,7 @@ export function SubscriptionForm({
   onSave,
   onCancel,
 }: SubscriptionFormProps): JSX.Element {
+  const theme = useTheme();
   const { columns } = useWindowSize();
   const [name, setName] = useState(subscription?.name ?? '');
   const [query, setQuery] = useState(subscription?.query ?? prefillQuery ?? '');

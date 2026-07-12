@@ -25,7 +25,7 @@ import { COMMENTS_KEYS, footerRows } from './keymap.js';
 import { HEADER_ROWS } from './Layout.js';
 import { LoadingIndicator } from './LoadingIndicator.js';
 import { SummaryPanel } from './SummaryPanel.js';
-import { theme } from './theme.js';
+import { useTheme, type Theme } from './theme.js';
 import { useFlash } from './useFlash.js';
 
 const HEADER_BORDER_LINES = 2;
@@ -53,6 +53,7 @@ interface CommentsProps {
 type Status = 'loading' | 'ready' | 'error';
 
 export function Comments({ story, config, onBack, onAskAI }: CommentsProps): JSX.Element {
+  const theme = useTheme();
   const { columns, rows } = useWindowSize();
   const headerLines = commentsHeaderLines(story, columns);
   const viewportLines = Math.max(1, rows - HEADER_ROWS - footerRows(COMMENTS_KEYS, columns) - headerLines);
@@ -91,7 +92,7 @@ export function Comments({ story, config, onBack, onAskAI }: CommentsProps): JSX
   }
 
   const flat = useMemo(() => flattenTree(comments, folded, headerOnly), [comments, folded, headerOnly]);
-  const rowsData = useMemo(() => flat.map((entry) => buildRow(entry, columns)), [flat, columns]);
+  const rowsData = useMemo(() => flat.map((entry) => buildRow(entry, columns, theme)), [flat, columns, theme]);
   const clampedSelected = clampSelection(selected, 0, flat.length);
 
   function openStory(): void {
@@ -192,6 +193,7 @@ interface CommentsHeaderProps {
 }
 
 function CommentsHeader({ story }: CommentsHeaderProps): JSX.Element {
+  const theme = useTheme();
   return (
     <Box flexDirection="column" borderStyle="round" borderColor={theme.colors.accent} paddingX={1}>
       <Text bold color={theme.colors.title}>
@@ -228,7 +230,7 @@ function replyBadge(entry: FlatComment): string {
   return entry.descendantCount === 1 ? '1 reply' : `${entry.descendantCount} replies`;
 }
 
-function buildHeaderSpans(entry: FlatComment): Span[] {
+function buildHeaderSpans(entry: FlatComment, theme: Theme): Span[] {
   const glyph = entry.headerOnly ? theme.glyphs.foldClosed : theme.glyphs.foldOpen;
   const badge = replyBadge(entry);
   const spans: Span[] = [
@@ -240,23 +242,23 @@ function buildHeaderSpans(entry: FlatComment): Span[] {
   return spans;
 }
 
-function tokenToSpan(token: TextToken): Span {
+function tokenToSpan(token: TextToken, theme: Theme): Span {
   if (token.kind === 'link') return { text: token.text, color: theme.colors.link, underline: true };
   if (token.kind === 'email') return { text: token.text, color: theme.colors.email, bold: true };
   return { text: token.text };
 }
 
-function buildRow(entry: FlatComment, columns: number): CommentRow {
+function buildRow(entry: FlatComment, columns: number, theme: Theme): CommentRow {
   // Reserve 2 columns for the selection bar so wrapping doesn't shift when selection moves,
   // plus 1 trailing column: a line that exactly fills the terminal width triggers a VT100
   // delayed-wrap that drops the selection bar/stripe from the following line.
   const width = Math.max(1, columns - 1 - entry.depth * 2 - ROW_BORDER_WIDTH);
-  const header: RenderLine = { kind: 'header', spans: buildHeaderSpans(entry) };
+  const header: RenderLine = { kind: 'header', spans: buildHeaderSpans(entry, theme) };
   const body: RenderLine[] = entry.headerOnly
     ? []
     : wrapPlainText(htmlToText(entry.node.text), width).map((line) => ({
         kind: 'body',
-        spans: tokenizeContacts(line).map(tokenToSpan),
+        spans: tokenizeContacts(line).map((token) => tokenToSpan(token, theme)),
       }));
   return { id: entry.node.id, depth: entry.depth, width, lines: [header, ...body] };
 }
@@ -273,6 +275,7 @@ interface CommentRowViewProps {
 }
 
 function CommentRowView({ depth, width, lines, isSelected }: CommentRowViewProps): JSX.Element {
+  const theme = useTheme();
   const background = isSelected ? theme.colors.selectionBackground : undefined;
   const prefix = isSelected ? `${SELECTION_BAR} ` : '  ';
   const rowWidth = width + ROW_BORDER_WIDTH;

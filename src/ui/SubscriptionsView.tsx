@@ -7,7 +7,7 @@ import { clampSelection, mapFeedKey } from '../lib/listNavigation.js';
 import { ensureVisibleLines, sliceByLines } from '../lib/viewport.js';
 import { footerRows, SUBS_KEYS } from './keymap.js';
 import { HEADER_ROWS } from './Layout.js';
-import { theme } from './theme.js';
+import { useTheme } from './theme.js';
 
 interface SubscriptionsViewProps {
   onSelectMatches: (subscription: Subscription) => void;
@@ -28,6 +28,7 @@ export function SubscriptionsView({
   onFeedChange,
   onTabChange,
 }: SubscriptionsViewProps): JSX.Element {
+  const theme = useTheme();
   const { columns, rows } = useWindowSize();
   const bodyHeight = Math.max(1, rows - HEADER_ROWS - footerRows(SUBS_KEYS, columns));
 

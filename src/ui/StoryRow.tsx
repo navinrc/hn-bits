@@ -4,7 +4,7 @@ import type { Story } from '../api/firebase.js';
 import { isBookmarked } from '../db/bookmarks.js';
 import { formatAge, truncateTitle } from '../lib/format.js';
 import { getHostname } from '../lib/url.js';
-import { theme } from './theme.js';
+import { useTheme } from './theme.js';
 
 export const STORY_ROW_HEIGHT = 3;
 
@@ -35,6 +35,7 @@ export function StoryRow({
   showMeta = true,
   showSeparator = true,
 }: StoryRowProps): JSX.Element {
+  const theme = useTheme();
   // Never let a line's content reach the literal terminal edge: a line that exactly
   // fills the width triggers a VT100 delayed-wrap that corrupts Ink's cursor position
   // for the row below it.

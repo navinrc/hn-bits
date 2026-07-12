@@ -1,6 +1,6 @@
 import { useEffect, useState, type JSX } from 'react';
 import { Text } from 'ink';
-import { theme } from './theme.js';
+import { useTheme } from './theme.js';
 
 const FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 const FRAME_INTERVAL_MS = 80;
@@ -10,6 +10,7 @@ interface LoadingIndicatorProps {
 }
 
 export function LoadingIndicator({ label }: LoadingIndicatorProps): JSX.Element {
+  const theme = useTheme();
   const [frame, setFrame] = useState(0);
 
   useEffect(() => {

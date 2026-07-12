@@ -1,3 +1,4 @@
+import { createContext, useContext } from 'react';
 import { loadConfig } from '../lib/config.js';
 
 export interface ThemeColors {
@@ -152,3 +153,9 @@ export function resolveTheme(name?: string): Theme {
 }
 
 export const theme = resolveTheme();
+
+export const ThemeContext = createContext<Theme>(theme);
+
+export function useTheme(): Theme {
+  return useContext(ThemeContext);
+}
