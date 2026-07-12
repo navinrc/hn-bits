@@ -119,6 +119,8 @@ export async function searchRecent(query: string, options: RecentSearchOptions):
     tags: 'story',
     numericFilters: numericFilters.join(','),
     hitsPerPage: String(options.hitsPerPage ?? 50),
+    typoTolerance: 'false',
+    queryType: 'prefixNone',
   });
   const res = await getJson<SearchResponse>(`${BASE}/search_by_date?${params}`);
   return res.hits.filter((h) => h.title != null).map(hitToStory);

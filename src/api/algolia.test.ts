@@ -26,6 +26,15 @@ describe('searchRecent', () => {
     expect(url.searchParams.get('hitsPerPage')).toBe('50');
   });
 
+  it('disables typo tolerance and prefix matching, so short queries do not stem-match unrelated words', async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonResponse({ hits: [], nbPages: 1, nbHits: 0 }));
+    await searchRecent('Apple', { createdAfter: 1000 });
+
+    const url = new URL(vi.mocked(fetch).mock.calls[0]![0] as string);
+    expect(url.searchParams.get('typoTolerance')).toBe('false');
+    expect(url.searchParams.get('queryType')).toBe('prefixNone');
+  });
+
   it('omits the points filter when minPoints is 0 or absent', async () => {
     vi.mocked(fetch).mockResolvedValue(jsonResponse({ hits: [], nbPages: 1, nbHits: 0 }));
     await searchRecent('zig', { createdAfter: 1000, minPoints: 0 });
