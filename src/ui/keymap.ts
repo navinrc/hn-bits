@@ -21,6 +21,7 @@ export const LIST_KEYS: readonly KeyBinding[] = [
   { key: '/', label: 'search' },
   { key: 's', label: 'summary' },
   { key: 'a', label: 'ask ai' },
+  { key: 'B', label: 'bookmark' },
 ];
 
 export const COMMENTS_KEYS: readonly KeyBinding[] = [
@@ -32,6 +33,7 @@ export const COMMENTS_KEYS: readonly KeyBinding[] = [
   { key: 'r', label: 'reload' },
   { key: 's', label: 'summary' },
   { key: 'a', label: 'ask ai' },
+  { key: 'B', label: 'bookmark' },
   { key: 'esc', label: 'back' },
 ];
 
@@ -43,7 +45,22 @@ export const SEARCH_RESULTS_KEYS: readonly KeyBinding[] = [
   { key: '/', label: 'new search' },
   { key: 's', label: 'summary' },
   { key: 'a', label: 'ask ai' },
+  { key: 'B', label: 'bookmark' },
   { key: 'esc', label: 'back/quit' },
+];
+
+export const SAVED_KEYS: readonly KeyBinding[] = [
+  { key: 'j/k', label: 'move' },
+  { key: '←/→', label: 'tab' },
+  { key: 't/n/b', label: 'feed' },
+  { key: 'gg/G', label: 'top/bottom' },
+  { key: 'enter', label: 'comments' },
+  { key: 'o', label: 'browser' },
+  { key: 'r', label: 'reload' },
+  { key: '/', label: 'search' },
+  { key: 's', label: 'summary' },
+  { key: 'a', label: 'ask ai' },
+  { key: 'B', label: 'remove' },
 ];
 
 /** Footer hint string: view keys followed by the global keys. */

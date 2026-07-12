@@ -4,6 +4,7 @@ import open from 'open';
 import { buildListSummaryPrompt } from '../ai/summaryPrompts.js';
 import { searchStories } from '../api/algolia.js';
 import { hnItemUrl, type Story } from '../api/firebase.js';
+import { toggleBookmark } from '../db/bookmarks.js';
 import type { Config } from '../lib/config.js';
 import { clampSelection } from '../lib/listNavigation.js';
 import { ensureVisibleLines, shouldFetchMore } from '../lib/viewport.js';
@@ -14,6 +15,7 @@ import { STORY_ROW_HEIGHT } from './StoryRow.js';
 import { StoryListView } from './StoryListView.js';
 import { SummaryPanel } from './SummaryPanel.js';
 import { theme } from './theme.js';
+import { useFlash } from './useFlash.js';
 
 const FETCH_THRESHOLD = 10;
 const HEADER_LINES = 1;
@@ -48,6 +50,7 @@ export function SearchResults({
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
   const [summaryOpen, setSummaryOpen] = useState(false);
+  const [flashMessage, flash] = useFlash();
   const token = useRef(0);
   const nextPage = useRef(0);
   const topLineRef = useRef(0);
@@ -120,6 +123,7 @@ export function SearchResults({
     if (input === 'r' && status === 'error') return void loadFirstPage();
     if (input === 's' && stories[selected]) return setSummaryOpen(true);
     if (input === 'a' && stories[selected]) return onAskAI(stories[selected]);
+    if (input === 'B' && stories[selected]) return flash(toggleBookmark(stories[selected]) ? 'bookmarked ✓' : 'bookmark removed');
     if (key.return && stories[selected]) return onSelectStory(stories[selected]);
   }
 
@@ -129,7 +133,8 @@ export function SearchResults({
   if (status === 'error') return <Text color={theme.colors.error}>{error} (r to retry)</Text>;
 
   const panelHeight = summaryOpen ? Math.max(6, Math.floor(bodyHeight / 2)) : 0;
-  const listHeight = Math.max(1, (loadingMore ? bodyHeight - 1 : bodyHeight) - panelHeight);
+  const statusLineHeight = loadingMore || flashMessage ? 1 : 0;
+  const listHeight = Math.max(1, bodyHeight - statusLineHeight - panelHeight);
   const heights = stories.map(() => STORY_ROW_HEIGHT);
   const topLine = ensureVisibleLines(heights, selected, topLineRef.current, listHeight);
   topLineRef.current = topLine;
@@ -142,7 +147,7 @@ export function SearchResults({
         {totalHits !== null ? `    ${totalHits} results` : ''}
       </Text>
       <StoryListView stories={stories} selected={selected} topLine={topLine} height={listHeight} width={columns} />
-      {loadingMore && <Text dimColor>loading more…</Text>}
+      {flashMessage ? <Text dimColor>{flashMessage}</Text> : loadingMore && <Text dimColor>loading more…</Text>}
       {summaryOpen && selectedStory && (
         <SummaryPanel
           config={config}

@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Story } from '../api/firebase.js';
+import { useTempDb } from '../test/dbHarness.js';
 import { render } from '../test/inkHarness.js';
 import { SearchResults } from './SearchResults.js';
+
+useTempDb('hn-bits-searchresults-');
 
 const HITS_PER_PAGE = 20;
 const TOTAL_HITS = 45;

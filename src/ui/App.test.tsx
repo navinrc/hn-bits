@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
+import { useTempDb } from '../test/dbHarness.js';
 import { render } from '../test/inkHarness.js';
 import { App } from './App.js';
+
+useTempDb('hn-bits-app-');
 
 vi.mock('../api/firebase.js', () => ({
   fetchStoryIds: vi.fn(() => new Promise(() => {})),

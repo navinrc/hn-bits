@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clampSelection, mapFeedKey, nextFeed, previousFeed } from './listNavigation.js';
+import { clampSelection, mapFeedKey, nextTab, previousTab } from './listNavigation.js';
 
 describe('clampSelection', () => {
   it('does not move above the top', () => {
@@ -28,26 +28,28 @@ describe('mapFeedKey', () => {
   });
 });
 
-describe('nextFeed', () => {
+describe('nextTab', () => {
   it('advances through the tab order', () => {
-    expect(nextFeed('top')).toBe('new');
-    expect(nextFeed('new')).toBe('best');
-    expect(nextFeed('best')).toBe('ask');
-    expect(nextFeed('ask')).toBe('show');
+    expect(nextTab('top')).toBe('new');
+    expect(nextTab('new')).toBe('best');
+    expect(nextTab('best')).toBe('ask');
+    expect(nextTab('ask')).toBe('show');
+    expect(nextTab('show')).toBe('saved');
   });
 
   it('wraps from the last tab to the first', () => {
-    expect(nextFeed('show')).toBe('top');
+    expect(nextTab('saved')).toBe('top');
   });
 });
 
-describe('previousFeed', () => {
+describe('previousTab', () => {
   it('moves back through the tab order', () => {
-    expect(previousFeed('show')).toBe('ask');
-    expect(previousFeed('ask')).toBe('best');
+    expect(previousTab('saved')).toBe('show');
+    expect(previousTab('show')).toBe('ask');
+    expect(previousTab('ask')).toBe('best');
   });
 
   it('wraps from the first tab to the last', () => {
-    expect(previousFeed('top')).toBe('show');
+    expect(previousTab('top')).toBe('saved');
   });
 });

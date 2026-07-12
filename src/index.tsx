@@ -35,6 +35,15 @@ program
   });
 
 program
+  .command('bookmarks')
+  .description('Open the TUI on the Saved tab')
+  .action(async () => {
+    applyTheme(program.opts<GlobalOptions>());
+    const { App } = await import('./ui/App.js');
+    render(<App initialView="saved" />, { alternateScreen });
+  });
+
+program
   .command('theme')
   .description('Show the active color theme and available palettes')
   .action(async () => {

@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Story } from '../api/firebase.js';
+import { useTempDb } from '../test/dbHarness.js';
 import { render } from '../test/inkHarness.js';
 import { StoryList } from './StoryList.js';
+
+useTempDb('hn-bits-storylist-');
 
 const TOTAL_IDS = 50;
 const ALL_IDS = Array.from({ length: TOTAL_IDS }, (_, i) => i + 1);
@@ -44,6 +47,7 @@ const LEFT_ARROW = '[D';
 
 function renderList() {
   const onFeedChange = vi.fn();
+  const onTabChange = vi.fn();
   const onSelectStory = vi.fn();
   const onSearchRequested = vi.fn();
   const onAskAI = vi.fn();
@@ -52,6 +56,7 @@ function renderList() {
       feed="top"
       config={null}
       onFeedChange={onFeedChange}
+      onTabChange={onTabChange}
       onSelectStory={onSelectStory}
       onSearchRequested={onSearchRequested}
       onAskAI={onAskAI}
@@ -59,18 +64,29 @@ function renderList() {
     80,
     14,
   );
-  return { instance, onFeedChange, onSelectStory, onSearchRequested, onAskAI };
+  return { instance, onFeedChange, onTabChange, onSelectStory, onSearchRequested, onAskAI };
 }
 
 describe('StoryList', () => {
-  it('switches to the previous tab on left arrow', async () => {
-    const { instance, onFeedChange } = renderList();
+  it('requests the previous tab on left arrow', async () => {
+    const { instance, onTabChange } = renderList();
     await instance.waitUntilRenderFlush();
 
     instance.stdin.writeInput(LEFT_ARROW);
     await instance.waitUntilRenderFlush();
 
-    expect(onFeedChange).toHaveBeenCalledWith('show');
+    expect(onTabChange).toHaveBeenCalledWith(-1);
+    instance.unmount();
+  });
+
+  it('toggles a bookmark on B, flashing a confirmation', async () => {
+    const { instance } = renderList();
+    await instance.waitUntilRenderFlush();
+
+    instance.stdin.writeInput('B');
+    await instance.waitUntilRenderFlush();
+
+    expect(instance.lastFrame()).toContain('bookmarked ✓');
     instance.unmount();
   });
 
