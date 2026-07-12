@@ -1,5 +1,4 @@
 import type { Story } from './firebase.js';
-import { passesThreshold } from '../lib/subscriptionMatch.js';
 
 const BASE = 'https://hn.algolia.com/api/v1';
 
@@ -112,38 +111,59 @@ export interface RecentSearchOptions {
 
 const MAX_HITS_PER_PAGE = 50;
 
-/**
- * Recency-ordered search (subscription matching + watcher window rescans),
- * as opposed to searchStories' relevance ordering.
- *
- * With a single active threshold it's pushed server-side as a numericFilter, same as before.
- * With both active, Algolia OR-group syntax is skipped (unverified, adds encoding complexity)
- * in favor of filtering the returned page client-side via passesThreshold — but that means
- * fetching against the full MAX_HITS_PER_PAGE candidate pool rather than the caller's
- * (possibly much smaller, e.g. preview's 5) requested limit, or an OR filter would be narrowed
- * by a cap meant to apply after it, not before.
- */
-export async function searchRecent(query: string, options: RecentSearchOptions): Promise<Story[]> {
-  const minPoints = options.minPoints ?? 0;
-  const minComments = options.minComments ?? 0;
-  const bothActive = minPoints > 0 && minComments > 0;
-  const requestedLimit = options.hitsPerPage ?? MAX_HITS_PER_PAGE;
-
-  const numericFilters = [`created_at_i>${options.createdAfter}`];
-  if (!bothActive) {
-    if (minPoints) numericFilters.push(`points>=${minPoints}`);
-    if (minComments) numericFilters.push(`num_comments>=${minComments}`);
-  }
+async function fetchPage(query: string, numericFilters: string[], hitsPerPage: number): Promise<Story[]> {
   const params = new URLSearchParams({
     query,
     tags: 'story',
     numericFilters: numericFilters.join(','),
-    hitsPerPage: String(bothActive ? MAX_HITS_PER_PAGE : requestedLimit),
+    hitsPerPage: String(hitsPerPage),
     typoTolerance: 'false',
     queryType: 'prefixNone',
   });
   const res = await getJson<SearchResponse>(`${BASE}/search_by_date?${params}`);
-  const stories = res.hits.filter((h) => h.title != null).map(hitToStory);
-  if (!bothActive) return stories;
-  return stories.filter((s) => passesThreshold(s, minPoints, minComments)).slice(0, requestedLimit);
+  return res.hits.filter((h) => h.title != null).map(hitToStory);
+}
+
+/** Union by id, most recent first — used to merge the points/comments pages when both thresholds are active. */
+function mergeByRecency(pages: Story[][]): Story[] {
+  const seen = new Set<number>();
+  const merged: Story[] = [];
+  for (const story of pages.flat()) {
+    if (seen.has(story.id)) continue;
+    seen.add(story.id);
+    merged.push(story);
+  }
+  return merged.sort((a, b) => b.time - a.time);
+}
+
+/**
+ * Recency-ordered search (subscription matching + watcher window rescans),
+ * as opposed to searchStories' relevance ordering.
+ *
+ * With a single active threshold it's pushed server-side as a numericFilter. With both active,
+ * Algolia OR-group numericFilters syntax is skipped (unverified against the live endpoint) in
+ * favor of two separately-filtered requests, unioned client-side: fetching one unfiltered page
+ * and filtering after the hitsPerPage cut undercounts for high-volume queries, since the
+ * requested items with no server-side floor bury older qualifying stories outside the window.
+ * Running each threshold as its own server-filtered query (same mechanism as the single-active
+ * case) avoids that.
+ */
+export async function searchRecent(query: string, options: RecentSearchOptions): Promise<Story[]> {
+  const minPoints = options.minPoints ?? 0;
+  const minComments = options.minComments ?? 0;
+  const requestedLimit = options.hitsPerPage ?? MAX_HITS_PER_PAGE;
+  const createdAfterFilter = `created_at_i>${options.createdAfter}`;
+
+  if (minPoints > 0 && minComments > 0) {
+    const [byPoints, byComments] = await Promise.all([
+      fetchPage(query, [createdAfterFilter, `points>=${minPoints}`], MAX_HITS_PER_PAGE),
+      fetchPage(query, [createdAfterFilter, `num_comments>=${minComments}`], MAX_HITS_PER_PAGE),
+    ]);
+    return mergeByRecency([byPoints, byComments]).slice(0, requestedLimit);
+  }
+
+  const numericFilters = [createdAfterFilter];
+  if (minPoints) numericFilters.push(`points>=${minPoints}`);
+  if (minComments) numericFilters.push(`num_comments>=${minComments}`);
+  return fetchPage(query, numericFilters, requestedLimit);
 }
