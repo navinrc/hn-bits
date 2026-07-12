@@ -168,6 +168,19 @@ Second, independent `minComments` threshold OR'd with the existing `minPoints` f
 
 V3.7 is feature-complete against `specs/v3.7/`. `npm test` (272 tests) and `npm run build` after each phase; all three OR-mode approaches live-verified against the real Algolia endpoint (`Claude Code`, `OpenAI` queries) before landing on 1b's single-request native-OR as final.
 
+## V3.5 — Desktop notifications (specs/v3.5/)
+
+Second `Notifier`: macOS desktop notifications via the external `alerter` binary, alongside V3's telegram.
+
+| Phase | Status | Notes |
+|-------|--------|-------|
+| Spec amendment | done | Missing-binary semantics made explicit (gap found during pre-implementation analysis): desktop-only config + `alerter` absent from PATH = one stderr warning, exit 0, no state touched (no `markSeen`/`touchLastRun`), so matches survive until install. Telegram-also-enabled runs proceed telegram-only |
+| 1: `notify/desktop.ts` | done | `findAlerter` (PATH scan), `createDesktopNotifier` (null + warning when missing). `send` spawns a detached, `unref`'d `sh -c` wrapper (stdio ignored) that waits out the notification and `open`s the story URL (`story.url ?? hnItemUrl`) unless the result is `@TIMEOUT`/`@CLOSED`; resolves at spawn, spawn errors log instead of rejecting (best-effort, never blocks `markSeen`). Story data reaches the shell only as positional parameters — a title containing `"$(rm -rf ~)"` never lands in the script string (regression-tested) |
+| 2: watcher integration | done | `buildNotifiers` returns `{ notifiers, desktopSkipped }`; desktop appended when `desktopNotifications.enabled`. Exit-2 gate widened to "no notifier enabled at all" with both config hints in the message; desktop-only + missing binary short-circuits to exit 0 before touching subscriptions. Telegram stays first in the send order and keeps its at-least-once throw semantics |
+| 3: live verify | done | brew formula build blocked by outdated CLT, so installed the v26.5 release binary to `~/.local/bin`. Two spec drifts caught live on macOS 26: (a) alerter's Swift rewrite accepts only double-dash flags (single-dash exits 64), output tokens unchanged; (b) cron runs with `PATH=/usr/bin:/bin`, which contains neither the Homebrew prefix nor `~/.local/bin` — discovery now also scans `/opt/homebrew/bin`, `/usr/local/bin`, `~/.local/bin` and the wrapper invokes the discovered absolute path. Verified against a sandboxed config/DB (`HN_BITS_CONFIG`/`HN_BITS_DB`): real notifications delivered desktop-only (7 matches, exit 0, instant watcher exit with wrappers detached), rerun = "no new matches" (markSeen persisted), no-notifier exit 2, missing-binary exit 0 with seen/lastRunAt untouched, cron-PATH run delivered via absolute path; wrapper click/timeout branches proven with stub `alerter`/`open` (click opens URL, timeout doesn't, hostile title inert) |
+
+V3.5 is feature-complete against `specs/v3.5/`. `npm test` (322 tests) and `npm run build` after each phase.
+
 ## Known gaps / follow-ups
 
 - V1.6 phases 1–8 complete; V1.6 is feature-complete against `specs/v1.6/`.
@@ -178,4 +191,5 @@ V3.7 is feature-complete against `specs/v3.7/`. `npm test` (272 tests) and `npm 
 - V3.2 phases 1–3 complete; V3.2 is feature-complete against `specs/v3.2/`.
 - V3.3 phase 1 complete; V3.3 is feature-complete against `specs/v3.3/`.
 - V3.7 phase 1 complete; V3.7 is feature-complete against `specs/v3.7/`.
-- Next: the small slices V3.5 (desktop notify), V3.6 (Discord). Independent, can ship in any order.
+- V3.5 phases 1–3 complete; V3.5 is feature-complete against `specs/v3.5/`.
+- Next: V3.6 (Discord webhook notifications).
