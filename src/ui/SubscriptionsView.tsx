@@ -4,10 +4,12 @@ import type { Feed } from '../api/firebase.js';
 import { listSubscriptions, removeSubscription, type Subscription } from '../db/subscriptions.js';
 import { formatAge } from '../lib/format.js';
 import { clampSelection, mapFeedKey } from '../lib/listNavigation.js';
+import { hasScheduledJob, installScheduledJob, removeScheduledJob } from '../lib/schedule.js';
 import { ensureVisibleLines, sliceByLines } from '../lib/viewport.js';
 import { footerRows, SUBS_KEYS } from './keymap.js';
 import { HEADER_ROWS } from './Layout.js';
 import { useTheme } from './theme.js';
+import { useFlash } from './useFlash.js';
 
 interface SubscriptionsViewProps {
   onSelectMatches: (subscription: Subscription) => void;
@@ -35,6 +37,8 @@ export function SubscriptionsView({
   const [subs, setSubs] = useState<Subscription[]>(() => listSubscriptions());
   const [selected, setSelected] = useState(0);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [scheduleInstalled, setScheduleInstalled] = useState(() => hasScheduledJob());
+  const [scheduleFlash, flashSchedule] = useFlash();
   const pendingTopJump = useRef(false);
   const topLineRef = useRef(0);
 
@@ -42,6 +46,22 @@ export function SubscriptionsView({
     const next = listSubscriptions();
     setSubs(next);
     setSelected((s) => clampSelection(s, 0, next.length));
+  }
+
+  function toggleSchedule(): void {
+    if (scheduleInstalled) {
+      removeScheduledJob();
+      setScheduleInstalled(false);
+      flashSchedule('schedule removed');
+      return;
+    }
+    try {
+      installScheduledJob();
+      setScheduleInstalled(true);
+      flashSchedule('schedule installed');
+    } catch {
+      flashSchedule("couldn't find 'hn' on PATH");
+    }
   }
 
   function handleInput(input: string, key: Key): void {
@@ -72,15 +92,26 @@ export function SubscriptionsView({
     if (input === 'a') return onAdd();
     if (input === 'e' && subs[selected]) return onEdit(subs[selected]);
     if (input === 'd' && subs[selected]) return setDeleteConfirm(subs[selected].name);
+    if (input === 'c') return toggleSchedule();
   }
 
   useInput(handleInput);
 
+  const scheduleStatusText = scheduleInstalled ? 'schedule: installed (every 30 min)' : 'schedule: not installed';
+
   if (subs.length === 0) {
-    return <Text dimColor>no subscriptions yet - press a to add</Text>;
+    return (
+      <Box flexDirection="column">
+        <Text dimColor>no subscriptions yet - press a to add</Text>
+        <Text dimColor>{scheduleStatusText}</Text>
+        {scheduleFlash && <Text dimColor>{scheduleFlash}</Text>}
+      </Box>
+    );
   }
 
-  const statusLineHeight = deleteConfirm ? 1 : 0;
+  const deleteLineHeight = deleteConfirm ? 1 : 0;
+  const scheduleFlashLineHeight = scheduleFlash ? 1 : 0;
+  const statusLineHeight = 1 + deleteLineHeight + scheduleFlashLineHeight;
   const listHeight = Math.max(1, bodyHeight - statusLineHeight);
   const heights = subs.map(() => 1);
   const topLine = ensureVisibleLines(heights, selected, topLineRef.current, listHeight);
@@ -103,6 +134,8 @@ export function SubscriptionsView({
         );
       })}
       {deleteConfirm && <Text dimColor>delete '{deleteConfirm}'? y/n</Text>}
+      <Text dimColor>{scheduleStatusText}</Text>
+      {scheduleFlash && <Text dimColor>{scheduleFlash}</Text>}
     </Box>
   );
 }

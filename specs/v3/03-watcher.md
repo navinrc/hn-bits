@@ -73,4 +73,5 @@ Cron still owns scheduling — `hn watch --once` remains a plain one-shot with n
 
 - `hn sub add` (CLI) and the subs-tab add form (TUI) both prompt y/n to install this line the first time a subscription is added, if no `hn-bits` job is installed yet. Declining leaves the manual crontab line as a documented fallback (same as before this change).
 - `hn schedule status` / `hn schedule install` / `hn schedule remove` manage the same line directly, for anyone who declined the prompt, added subscriptions before this existed, or wants to remove it.
+- The subs tab also shows a persistent `schedule: installed (every 30 min)` / `schedule: not installed` status line and lets you toggle the job at any time with `c` — not just via the one-time add-form prompt. This calls the same `installScheduledJob`/`removeScheduledJob` functions, so it shares the same blocking-`crontab`-call cost (observed ~1-7s of frozen UI while the toggle runs).
 - cron only (no launchd) — 30 min default, window overlap (6 h) makes any cadence safe.
