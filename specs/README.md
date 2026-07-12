@@ -9,8 +9,12 @@ Terminal-first Hacker News client (`hn` binary). Specs versioned by release; eac
 | V1 | Browse + search + comments | **done** | [v1/](v1/00-overview.md) |
 | V1.5 | UI overhaul: fullscreen TUI, tabs, comment tree, theme palettes | **done** | [v1.5/](v1.5/00-overview.md) |
 | V1.6 | Visual rework: two-line story rows, bordered comments cards, collapsed-by-default threads, tab bar + polish + loader, comments polish (colors, fold states, contacts), navbar rule + selection/fold follow-ups | **done** | [v1.6/](v1.6/01-story-row-layout.md) |
-| V2 | Local AI: summaries + Ask AI (Ollama) | spec'd | [v2/](v2/00-overview.md) |
-| V3 | Subscriptions (CLI + subs tab TUI) + watcher + Telegram + desktop notify + SQLite + bookmarks | spec'd | [v3/](v3/00-overview.md) |
+| V2 | Local AI: summaries + Ask AI (Ollama) | **done** | [v2/](v2/00-overview.md) |
+| V2.5 | Config CLI (`hn config get/set/unset/list`) | **done** | [v2.5/](v2.5/01-config-cli.md) |
+| V3 | Subscriptions (CLI + subs tab TUI) + watcher + Telegram + SQLite + bookmarks | spec'd | [v3/](v3/00-overview.md) |
+| V3.1 | Theme persistence (`ui.theme` config key) | spec'd | [v3.1/](v3.1/01-theme-config.md) |
+| V3.5 | macOS desktop notifications (alerter) | spec'd | [v3.5/](v3.5/01-desktop-notifications.md) |
+| V3.6 | Discord notifications (webhook) | spec'd | [v3.6/](v3.6/01-discord.md) |
 
 ## Roadmap
 
@@ -38,7 +42,7 @@ flowchart LR
     subgraph V3 [V3 — radar]
         I[SQLite storage] --> J[subscriptions]
         J --> K[hn watch --once]
-        K --> L[Telegram + desktop notify]
+        K --> L[Telegram notify]
         J --> N[subs tab TUI]
         I --> M[bookmarks]
     end

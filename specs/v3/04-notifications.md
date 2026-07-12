@@ -1,6 +1,6 @@
 # Notifications (`src/notify/`)
 
-Telegram + macOS desktop in V3. Interface first, so Discord later = one new file, zero watcher changes.
+Telegram only in V3. Interface first, so each later channel = one new file, zero watcher changes: macOS desktop is V3.5 ([../v3.5/01-desktop-notifications.md](../v3.5/01-desktop-notifications.md)), Discord is V3.6 ([../v3.6/01-discord.md](../v3.6/01-discord.md)).
 
 ## Interface (`notifier.ts`)
 
@@ -16,7 +16,7 @@ interface Notifier {
 }
 ```
 
-Watcher takes `Notifier[]` — every configured notifier gets every match. V3 ships two implementations: `telegram.ts` and `desktop.ts`. Discord later = new `discord.ts` implementing `Notifier`, enabled by config presence.
+Watcher takes `Notifier[]` — every configured notifier gets every match. V3 ships one implementation: `telegram.ts`. Later channels (`desktop.ts` in V3.5, `discord.ts` in V3.6) each implement `Notifier`, enabled by config.
 
 ## Config (extends V2 config file — additive keys; managed via `hn config`, [../v2.5/01-config-cli.md](../v2.5/01-config-cli.md))
 
@@ -27,10 +27,6 @@ Watcher takes `Notifier[]` — every configured notifier gets every match. V3 sh
     "enabled": true,
     "botToken": "123456:ABC-...",
     "chatId": "987654321"
-  },
-  "desktopNotifications": {
-    "enabled": true,
-    "timeoutSeconds": 10
   }
 }
 ```
@@ -39,10 +35,9 @@ Watcher takes `Notifier[]` — every configured notifier gets every match. V3 sh
 hn config set telegram.enabled true
 hn config set telegram.botToken 123456:ABC-...
 hn config set telegram.chatId 987654321
-hn config set desktopNotifications.enabled true
 ```
 
-Telegram setup (documented in README): create bot via `@BotFather` → token; message the bot once, get chat id via `getUpdates`. Activation is explicit and symmetric with desktop: `telegram.enabled === true` (with `botToken`/`chatId` also set) turns it on; `desktopNotifications.enabled === true` turns that on (`timeoutSeconds` optional, default 10). Each notifier is independent — either enabled alone is valid; **neither** enabled = exit 2 from watcher ([03-watcher.md](03-watcher.md)).
+Telegram setup (documented in README): create bot via `@BotFather` → token; message the bot once, get chat id via `getUpdates`. Activation is explicit: `telegram.enabled === true` (with `botToken`/`chatId` also set) turns it on. In V3, telegram not enabled = exit 2 from watcher ([03-watcher.md](03-watcher.md)); V3.5 relaxes the gate to "no notifier enabled at all". The `desktopNotifications.*` keys already shipped in V2.5 stay in `configKeys.ts` and activate in V3.5.
 
 ## Telegram implementation (`telegram.ts`)
 
@@ -71,23 +66,6 @@ Message format (HTML parse mode; title/author escaped with `&amp; &lt; &gt;`):
 - Story link omitted for text posts (HN link only, becomes the title link).
 - Preview left enabled — Telegram's link preview is useful context.
 
-## Desktop implementation (`desktop.ts`)
-
-macOS-only, via [alerter](https://github.com/vjeantet/alerter) — external CLI binary (`brew install vjeantet/tap/alerter`), **not** an npm dependency. Requires macOS 13+; some alerter features use private APIs and may break on future macOS releases — V3 sticks to the stable subset (no reply/dropdown).
-
-- **Binary discovery:** `alerter` looked up on `PATH` once per watcher run. Missing = one stderr warning `desktop: alerter not found (brew install vjeantet/tap/alerter), skipping` and the notifier is disabled for the run. Never exit 2 — telegram unaffected.
-- **Invocation:** alerter has no `-open` flag and blocks until the notification is clicked, dismissed, or times out, printing the result. So `send()` spawns a detached `sh -c` wrapper (stdio ignored, `unref()`):
-
-```sh
-r=$(alerter -title "🔔 <sub name>" -subtitle "<points> pts · <comments> comments" \
-    -message "<story title>" -actions Open -timeout <timeoutSeconds> -group hn-<subId>)
-case "$r" in @TIMEOUT|@CLOSED) ;; *) open "<url>" ;; esac
-```
-
-- **Click opens the story URL** (HN discussion link for text posts — same rule as the telegram message). Body click (`@CONTENTCLICKED`) and the `Open` action both open. Title and URL shell-escaped.
-- **Fire-and-forget:** `send()` resolves once the wrapper spawns; the wrapper — not the watcher — waits out the interaction, lives at most `timeoutSeconds`, and exits with the notification. Watcher exit is never delayed.
-- `-group hn-<subId>` replaces a subscription's stale notification instead of stacking.
-
 ## Failure handling
 
 ```mermaid
@@ -113,5 +91,3 @@ sequenceDiagram
 
 - One 429 retry honoring `parameters.retry_after`; anything else throws. Watcher's no-markSeen rule makes every failure eventually retried — no lost notifications, at-least-once delivery (duplicate only possible if crash lands between send and markSeen; accepted).
 - Sequential sends (watcher already serial) keep volume far under Telegram limits (~1 msg/s per chat).
-
-**Asymmetry (deliberate):** desktop is best-effort — spawn failures are logged, never throw `NotifyError`, never block `markSeen`. Telegram remains the at-least-once channel. Consequence: in desktop-only config, a spawned wrapper counts as sent, so delivery is at-most-once ([03-watcher.md](03-watcher.md)).

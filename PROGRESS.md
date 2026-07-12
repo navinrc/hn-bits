@@ -72,6 +72,17 @@ Grilling session on v3 UX. Decisions and spec changes (no code):
 | Saved tab gains `s`/`a` on the list itself via a `SavedList` container around `StoryListView` (bare `StoryListView` has no `useInput`, so the original spec silently lacked summary/Ask AI there) | v3/05, 00 |
 | TUI never touches `seen_items`/`lastRunAt`: watcher owns notification state, TUI browsing is stateless fetch. Unread counts explicitly out of V3 | v3/00, 06 |
 
+## Spec restructure - V3 split into slices (2026-07-12)
+
+V3 slimmed to its radar core (subscriptions CLI+TUI, watcher, Telegram, SQLite, bookmarks); optional channels extracted, plus a new small slice for theme persistence. No code.
+
+| Change | Where |
+|--------|-------|
+| macOS desktop notifications (alerter binary, sh wrapper, best-effort/at-most-once semantics, exit-2 gate widening) extracted to V3.5; v3 watcher/notifications/overview now telegram-only with pointers | new v3.5/01; v3/00, 03, 04 |
+| Discord extracted from "out of V3, interface-ready" to V3.6: webhook transport (not bot API), `discord.{enabled,webhookUrl}` config (webhookUrl masked), telegram failure semantics | new v3.6/01 |
+| Theme persistence spec'd as V3.1: `ui.theme` config key validated against `paletteNames()`, precedence flag > env > config > default, `hn theme` shows source | new v3.1/01 |
+| specs/README status table: V2/V2.5 marked done (were stale/missing), rows added for V3.1/V3.5/V3.6 | specs/README.md |
+
 ## V2 — Local AI (specs/v2/)
 
 Summaries (`s`) and Ask AI (`a`) grounded in the story's article + comment thread, streamed from a local Ollama instance. No cloud calls, no API keys.
@@ -100,4 +111,4 @@ V2.5 is feature-complete against `specs/v2.5/`.
 - V1.6 phases 1–8 complete; V1.6 is feature-complete against `specs/v1.6/`.
 - V2 phases 1–4 complete; V2 is feature-complete against `specs/v2/`.
 - V2.5 phase 1 complete; V2.5 is feature-complete against `specs/v2.5/`.
-- Next: V3 (subscriptions CLI + subs tab TUI + watcher + Telegram + SQLite + bookmarks) per `specs/v3/`.
+- Next: V3 (subscriptions CLI + subs tab TUI + watcher + Telegram + SQLite + bookmarks) per `specs/v3/`; then the small slices V3.1 (theme config), V3.5 (desktop notify), V3.6 (Discord). V3.1 has no V3 dependency and can ship any time.
