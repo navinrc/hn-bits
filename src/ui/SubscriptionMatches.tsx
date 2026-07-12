@@ -67,6 +67,7 @@ export function SubscriptionMatches({
       const results = await searchRecent(subscription.query, {
         createdAfter: windowStart(),
         minPoints: subscription.minPoints,
+        minComments: subscription.minComments,
       });
       setStories(results);
       setStatus('ready');

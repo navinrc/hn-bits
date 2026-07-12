@@ -5,6 +5,7 @@ export interface Subscription {
   name: string;
   query: string;
   minPoints: number;
+  minComments: number;
   createdAt: number;
   lastRunAt: number | null;
 }
@@ -14,6 +15,7 @@ interface SubscriptionRow {
   name: string;
   query: string;
   min_points: number;
+  min_comments: number;
   created_at: number;
   last_run_at: number | null;
 }
@@ -24,6 +26,7 @@ function fromRow(row: SubscriptionRow): Subscription {
     name: row.name,
     query: row.query,
     minPoints: row.min_points,
+    minComments: row.min_comments,
     createdAt: row.created_at,
     lastRunAt: row.last_run_at,
   };
@@ -38,13 +41,18 @@ function assertNameFree(name: string, excludeId?: number): void {
   if (conflict) throw new Error(`subscription '${name}' already exists`);
 }
 
-export function addSubscription(name: string, query: string, minPoints: number): Subscription {
+export function addSubscription(
+  name: string,
+  query: string,
+  minPoints: number,
+  minComments = 0,
+): Subscription {
   assertNameFree(name);
   const createdAt = Math.floor(Date.now() / 1000);
   const info = openDb()
-    .prepare('INSERT INTO subscriptions (name, query, min_points, created_at) VALUES (?, ?, ?, ?)')
-    .run(name, query, minPoints, createdAt);
-  return { id: Number(info.lastInsertRowid), name, query, minPoints, createdAt, lastRunAt: null };
+    .prepare('INSERT INTO subscriptions (name, query, min_points, min_comments, created_at) VALUES (?, ?, ?, ?, ?)')
+    .run(name, query, minPoints, minComments, createdAt);
+  return { id: Number(info.lastInsertRowid), name, query, minPoints, minComments, createdAt, lastRunAt: null };
 }
 
 export function listSubscriptions(): Subscription[] {
@@ -59,14 +67,15 @@ export function removeSubscription(name: string): boolean {
 
 export function updateSubscription(
   id: number,
-  fields: { name: string; query: string; minPoints: number },
+  fields: { name: string; query: string; minPoints: number; minComments?: number },
 ): Subscription {
   assertNameFree(fields.name, id);
   const db = openDb();
-  db.prepare('UPDATE subscriptions SET name = ?, query = ?, min_points = ? WHERE id = ?').run(
+  db.prepare('UPDATE subscriptions SET name = ?, query = ?, min_points = ?, min_comments = ? WHERE id = ?').run(
     fields.name,
     fields.query,
     fields.minPoints,
+    fields.minComments ?? 0,
     id,
   );
   return fromRow(db.prepare('SELECT * FROM subscriptions WHERE id = ?').get(id) as SubscriptionRow);

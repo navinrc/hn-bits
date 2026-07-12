@@ -156,6 +156,18 @@ V3.2 is feature-complete against `specs/v3.2/`.
 
 V3.3 is feature-complete against `specs/v3.3/`.
 
+## V3.7 — Min-comments subscription threshold (specs/v3.7/)
+
+Second, independent `minComments` threshold OR'd with the existing `minPoints` floor.
+
+| Phase | Status | Notes |
+|-------|--------|-------|
+| 1: minComments end-to-end | done | Additive migration (`db/db.ts` MIGRATIONS[1]: `ALTER TABLE subscriptions ADD COLUMN min_comments INTEGER NOT NULL DEFAULT 0`); `Subscription.minComments`, `addSubscription`/`updateSubscription` thread it through (`db/subscriptions.ts`). New `lib/subscriptionLabel.ts` (`thresholdLabel` — `any`/`≥N pts`/`≥N cmts`/`≥N pts or ≥N cmts`, shared by `hn sub list`, `SubscriptionsView`, and `SubscriptionForm`'s preview). `api/algolia.ts`'s `searchRecent` gains `minComments`: single-threshold subscriptions still push one server-side `numericFilters` entry unchanged. `watch.ts` and `SubscriptionMatches.tsx` pass `sub.minComments` through with no other changes (single change point, per spec). CLI: `hn sub add --min-comments <n>` mirrors `--min-points`. TUI: `SubscriptionForm.tsx` gains a 4th tab-ordered `min comments` field, live preview label reflects the OR |
+| 1a: fix OR-mode undercount | done | Live-caught via the TUI form preview: first cut fetched one unfiltered page then filtered client-side (`passesThreshold`), which undercounted badly for high-volume queries (`Claude Code: >=30 pts OR >=1 comment` returned 2 matches instead of 5+) — brand-new zero-engagement posts crowded the older qualifying stories out of the unfiltered top-50-by-recency window before the OR check ran. Replaced with two parallel server-filtered requests (`points>=N`, `num_comments>=M`, each hitting the same 50-hit cap the single-threshold path already uses), unioned by story id, sorted by recency, trimmed to the caller's limit. `lib/subscriptionMatch.ts`/`passesThreshold` removed (no longer needed — each side is server-filtered, not client-scanned). Spec's "why client-side" rationale corrected in `specs/v3.7/01-min-comments-threshold.md` |
+| 1b: switch to native Algolia OR | done | 1a's two-request-merge was itself an unnecessary workaround: the spec had ruled out Algolia's nested-array `numericFilters` OR syntax (`[a, [b, c]]` = `a AND (b OR c)`) as "unverified against the live endpoint," but it verified live against `hn.algolia.com` this phase (`numericFilters=["created_at_i>X",["points>=30","num_comments>=1"]]` returned the correct OR-matching set for a real `OpenAI` query). `searchRecent` now sends one request in all cases — a flat comma-joined `numericFilters` string when 0-or-1 threshold is active (unchanged), a JSON-encoded nested-array string when both are active — matching 1a's output exactly (re-verified live against `Claude Code: >=30 pts OR >=1 comment`) with no extra round-trip. `mergeByRecency` and the two-request branch removed; spec's rationale rewritten again to record the final, verified approach |
+
+V3.7 is feature-complete against `specs/v3.7/`. `npm test` (272 tests) and `npm run build` after each phase; all three OR-mode approaches live-verified against the real Algolia endpoint (`Claude Code`, `OpenAI` queries) before landing on 1b's single-request native-OR as final.
+
 ## Known gaps / follow-ups
 
 - V1.6 phases 1–8 complete; V1.6 is feature-complete against `specs/v1.6/`.
@@ -165,4 +177,5 @@ V3.3 is feature-complete against `specs/v3.3/`.
 - V3.1 phase 1 complete; V3.1 is feature-complete against `specs/v3.1/`.
 - V3.2 phases 1–3 complete; V3.2 is feature-complete against `specs/v3.2/`.
 - V3.3 phase 1 complete; V3.3 is feature-complete against `specs/v3.3/`.
+- V3.7 phase 1 complete; V3.7 is feature-complete against `specs/v3.7/`.
 - Next: the small slices V3.5 (desktop notify), V3.6 (Discord). Independent, can ship in any order.

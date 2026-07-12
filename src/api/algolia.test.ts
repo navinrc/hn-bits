@@ -43,6 +43,33 @@ describe('searchRecent', () => {
     expect(url.searchParams.get('numericFilters')).toBe('created_at_i>1000');
   });
 
+  it('pushes num_comments as a server-side filter when only minComments is set', async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonResponse({ hits: [], nbPages: 1, nbHits: 0 }));
+    await searchRecent('zig', { createdAfter: 1000, minComments: 5 });
+
+    const url = new URL(vi.mocked(fetch).mock.calls[0]![0] as string);
+    expect(url.searchParams.get('numericFilters')).toBe('created_at_i>1000,num_comments>=5');
+  });
+
+  it('sends a single request with a nested-array OR numericFilters when both thresholds are active', async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonResponse({ hits: [], nbPages: 1, nbHits: 0 }));
+    await searchRecent('apple', { createdAfter: 1000, minPoints: 20, minComments: 5 });
+
+    expect(vi.mocked(fetch)).toHaveBeenCalledTimes(1);
+    const url = new URL(vi.mocked(fetch).mock.calls[0]![0] as string);
+    expect(url.searchParams.get('numericFilters')).toBe(
+      JSON.stringify(['created_at_i>1000', ['points>=20', 'num_comments>=5']]),
+    );
+  });
+
+  it('passes hitsPerPage straight through (no over-fetch) when both thresholds are active', async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonResponse({ hits: [], nbPages: 1, nbHits: 0 }));
+    await searchRecent('apple', { createdAfter: 1000, minPoints: 20, minComments: 5, hitsPerPage: 5 });
+
+    const url = new URL(vi.mocked(fetch).mock.calls[0]![0] as string);
+    expect(url.searchParams.get('hitsPerPage')).toBe('5');
+  });
+
   it('maps hits to stories and drops hits with no title', async () => {
     vi.mocked(fetch).mockResolvedValue(
       jsonResponse({
