@@ -183,6 +183,16 @@ Second `Notifier`: macOS desktop notifications via the external `alerter` binary
 
 V3.5 is feature-complete against `specs/v3.5/`. `npm test` (322 tests) and `npm run build` after each phase.
 
+## V3.8 — Merge multi-subscription matches into one notification (specs/v3.8/)
+
+A story matching multiple subscriptions in one run fired one duplicate notification per subscription.
+
+| Phase | Status | Notes |
+|-------|--------|-------|
+| 1: merge into one notification per story | done | `notify/notifier.ts`'s `Match.subscription` → `subscriptions: Subscription[]`; `telegram.ts`/`desktop.ts` join names in the header (`escapeHtml`'d for Telegram, raw for desktop, since each notifier owns its own formatting per the spec's array-not-label decision). `watch.ts` split into phase A/B: `collectPending` fetches every subscription and accumulates a `Map<storyId, {story, subscriptions[]}>`, `dispatchPending` sends one notify per story (time-ascending) and `markSeen`s every matching sub on success. Desktop `--group` narrowed from `hn-<subId>-<storyId>` to `hn-<storyId>` (notification identity is now per-story, superseding V3.5's per-sub-group live-polish fix). `touchLastRun` contract unchanged (per sub, iff fetch succeeded, even on a later send failure). 8 new/updated tests across `watch.test.ts`, `telegram.test.ts`, `desktop.test.ts`; regression-tested by temp-reverting the merge (confirmed 2 sends instead of 1, then restored). Live-verified: `hn watch --once --dry-run` against two subscriptions on the same query against the real Algolia endpoint — every one of 49 overlapping stories logged as a single `would notify: [SubOne, SubTwo] ...` line |
+
+V3.8 is feature-complete against `specs/v3.8/`. `npm test` (327 tests) and `npm run build`.
+
 ## Known gaps / follow-ups
 
 - V1.6 phases 1–8 complete; V1.6 is feature-complete against `specs/v1.6/`.
@@ -194,4 +204,5 @@ V3.5 is feature-complete against `specs/v3.5/`. `npm test` (322 tests) and `npm 
 - V3.3 phase 1 complete; V3.3 is feature-complete against `specs/v3.3/`.
 - V3.7 phase 1 complete; V3.7 is feature-complete against `specs/v3.7/`.
 - V3.5 phases 1–3 complete; V3.5 is feature-complete against `specs/v3.5/`.
+- V3.8 phase 1 complete; V3.8 is feature-complete against `specs/v3.8/`.
 - Next: V3.6 (Discord webhook notifications).

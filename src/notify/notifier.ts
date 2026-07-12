@@ -2,7 +2,7 @@ import type { Story } from '../api/firebase.js';
 import type { Subscription } from '../db/subscriptions.js';
 
 export interface Match {
-  subscription: Subscription;
+  subscriptions: Subscription[];
   story: Story;
 }
 

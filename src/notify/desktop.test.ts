@@ -36,7 +36,7 @@ const story: Story = {
   time: 0,
 };
 
-const match: Match = { subscription, story };
+const match: Match = { subscriptions: [subscription], story };
 
 function fakeChild(): EventEmitter & { unref: () => void } {
   return Object.assign(new EventEmitter(), { unref: vi.fn() });
@@ -79,7 +79,7 @@ describe('createDesktopNotifier', () => {
 
   it('spawns a detached sh wrapper with story data as positional parameters only', async () => {
     const hostile = { ...story, title: 'evil "$(rm -rf ~)" title' };
-    await createDesktopNotifier({ timeoutSeconds: 15 })!.send({ subscription, story: hostile });
+    await createDesktopNotifier({ timeoutSeconds: 15 })!.send({ subscriptions: [subscription], story: hostile });
 
     const [command, args, options] = mocks.spawn.mock.calls[0]!;
     expect(command).toBe('sh');
@@ -94,15 +94,24 @@ describe('createDesktopNotifier', () => {
       '312 pts · 214 comments',
       'evil "$(rm -rf ~)" title',
       '15',
-      'hn-7-41211001',
+      'hn-41211001',
       'https://example.com/article',
       expect.stringMatching(/\/alerter$/),
     ]);
     expect(options).toEqual({ detached: true, stdio: 'ignore' });
   });
 
+  it('joins multiple subscription names in the title, group stays per-story only', async () => {
+    const subB: Subscription = { ...subscription, id: 8, name: 'rust' };
+    await createDesktopNotifier({ timeoutSeconds: 10 })!.send({ subscriptions: [subscription, subB], story });
+
+    const args = mocks.spawn.mock.calls[0]![1] as string[];
+    expect(args[3]).toBe('🔔 postgres, rust');
+    expect(args[7]).toBe('hn-41211001');
+  });
+
   it('opens the HN discussion link for text posts', async () => {
-    await createDesktopNotifier({ timeoutSeconds: 10 })!.send({ subscription, story: { ...story, url: undefined } });
+    await createDesktopNotifier({ timeoutSeconds: 10 })!.send({ subscriptions: [subscription], story: { ...story, url: undefined } });
     const args = mocks.spawn.mock.calls[0]![1] as string[];
     expect(args.at(-2)).toBe('https://news.ycombinator.com/item?id=41211001');
   });

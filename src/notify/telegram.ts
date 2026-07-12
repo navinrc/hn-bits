@@ -19,8 +19,9 @@ function escapeHtml(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-function buildMessage({ subscription, story }: Match): string {
-  const lines = [`🔔 <b>${escapeHtml(subscription.name)}</b>`];
+function buildMessage({ subscriptions, story }: Match): string {
+  const names = subscriptions.map((s) => s.name).join(', ');
+  const lines = [`🔔 <b>${escapeHtml(names)}</b>`];
   if (story.url) {
     lines.push(`<a href="${story.url}">${escapeHtml(story.title)}</a>`);
     lines.push(`${story.score} points · ${story.descendants} comments · by ${escapeHtml(story.by)}`);

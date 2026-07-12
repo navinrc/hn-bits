@@ -71,7 +71,7 @@ describe('runWatch', () => {
 
     expect(code).toBe(0);
     expect(mocks.createDesktopNotifier).toHaveBeenCalledWith({ timeoutSeconds: 10 });
-    expect(mocks.desktopSend).toHaveBeenCalledWith({ subscription: sub, story: expect.objectContaining({ id: 42 }) });
+    expect(mocks.desktopSend).toHaveBeenCalledWith({ subscriptions: [sub], story: expect.objectContaining({ id: 42 }) });
     expect(mocks.markSeen).toHaveBeenCalledWith(42, 1, expect.any(Number));
   });
 
@@ -126,7 +126,7 @@ describe('runWatch', () => {
     const code = await runWatch({ dryRun: false });
 
     expect(code).toBe(0);
-    expect(mocks.send).toHaveBeenCalledWith({ subscription: sub, story: expect.objectContaining({ id: 42 }) });
+    expect(mocks.send).toHaveBeenCalledWith({ subscriptions: [sub], story: expect.objectContaining({ id: 42 }) });
     expect(mocks.markSeen).toHaveBeenCalledWith(42, 1, expect.any(Number));
     expect(mocks.touchLastRun).toHaveBeenCalledWith(1, expect.any(Number));
   });
@@ -186,7 +186,7 @@ describe('runWatch', () => {
     const code = await runWatch({ dryRun: false });
 
     expect(code).toBe(1);
-    expect(mocks.send).toHaveBeenCalledWith(expect.objectContaining({ subscription: subB }));
+    expect(mocks.send).toHaveBeenCalledWith(expect.objectContaining({ subscriptions: [subB] }));
     expect(mocks.touchLastRun).toHaveBeenCalledWith(2, expect.any(Number));
     expect(mocks.touchLastRun).not.toHaveBeenCalledWith(1, expect.any(Number));
   });
@@ -200,5 +200,54 @@ describe('runWatch', () => {
 
     const createdAfter = mocks.searchRecent.mock.calls[0]![1].createdAfter;
     expect(createdAfter).toBeCloseTo(now - 1000 - 6 * 60 * 60, -1);
+  });
+
+  it('merges a story matched by multiple subscriptions into one notification', async () => {
+    const subA = makeSub({ id: 1, name: 'a' });
+    const subB = makeSub({ id: 2, name: 'b' });
+    mocks.listSubscriptions.mockReturnValue([subA, subB]);
+    const shared = makeStory({ id: 9 });
+    mocks.searchRecent.mockResolvedValueOnce([shared]).mockResolvedValueOnce([shared]);
+
+    const code = await runWatch({ dryRun: false });
+
+    expect(code).toBe(0);
+    expect(mocks.send).toHaveBeenCalledTimes(1);
+    expect(mocks.send).toHaveBeenCalledWith({ subscriptions: [subA, subB], story: expect.objectContaining({ id: 9 }) });
+    expect(mocks.markSeen).toHaveBeenCalledWith(9, 1, expect.any(Number));
+    expect(mocks.markSeen).toHaveBeenCalledWith(9, 2, expect.any(Number));
+    expect(mocks.touchLastRun).toHaveBeenCalledWith(1, expect.any(Number));
+    expect(mocks.touchLastRun).toHaveBeenCalledWith(2, expect.any(Number));
+  });
+
+  it('marks neither sub seen when the merged notify fails, but still touches both lastRunAt', async () => {
+    const subA = makeSub({ id: 1, name: 'a' });
+    const subB = makeSub({ id: 2, name: 'b' });
+    mocks.listSubscriptions.mockReturnValue([subA, subB]);
+    const shared = makeStory({ id: 9 });
+    mocks.searchRecent.mockResolvedValueOnce([shared]).mockResolvedValueOnce([shared]);
+    mocks.send.mockRejectedValue(new Error('telegram down'));
+
+    const code = await runWatch({ dryRun: false });
+
+    expect(code).toBe(1);
+    expect(mocks.markSeen).not.toHaveBeenCalled();
+    expect(mocks.touchLastRun).toHaveBeenCalledWith(1, expect.any(Number));
+    expect(mocks.touchLastRun).toHaveBeenCalledWith(2, expect.any(Number));
+  });
+
+  it('dispatches merged stories oldest-first by story.time', async () => {
+    const subA = makeSub({ id: 1, name: 'a' });
+    const subB = makeSub({ id: 2, name: 'b' });
+    mocks.listSubscriptions.mockReturnValue([subA, subB]);
+    const newer = makeStory({ id: 1, time: 2000 });
+    const older = makeStory({ id: 2, time: 1000 });
+    mocks.searchRecent.mockResolvedValueOnce([newer]).mockResolvedValueOnce([older]);
+
+    await runWatch({ dryRun: false });
+
+    expect(mocks.send).toHaveBeenCalledTimes(2);
+    expect(mocks.send.mock.calls[0]![0].story.id).toBe(2);
+    expect(mocks.send.mock.calls[1]![0].story.id).toBe(1);
   });
 });
