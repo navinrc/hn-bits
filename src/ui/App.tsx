@@ -15,6 +15,7 @@ import {
   SEARCH_RESULTS_KEYS,
   SUB_MATCHES_KEYS,
   SUBS_KEYS,
+  THEME_PICKER_KEYS,
   footerHint,
   type KeyBinding,
 } from './keymap.js';
@@ -27,6 +28,8 @@ import { SubscriptionForm } from './SubscriptionForm.js';
 import { SubscriptionMatches } from './SubscriptionMatches.js';
 import { SubscriptionsView } from './SubscriptionsView.js';
 import { TabBar } from './TabBar.js';
+import { ThemePicker } from './ThemePicker.js';
+import { resolvePaletteName, resolveTheme, ThemeContext, type PaletteName } from './theme.js';
 
 type ListLikeView =
   | { name: 'list' }
@@ -63,14 +66,24 @@ export function App({ initialQuery, initialView }: AppProps): JSX.Element {
   );
   const [helpOpen, setHelpOpen] = useState(false);
   const [config] = useState(loadConfig);
+  const [paletteName, setPaletteName] = useState<PaletteName>(() => resolvePaletteName());
+  const [themePickerOpen, setThemePickerOpen] = useState(false);
+  const activeTheme = resolveTheme(paletteName);
   const { exit } = useApp();
 
   useInput((input) => {
+    if (themePickerOpen) return;
     if (helpOpen) return setHelpOpen(false);
     if (view.name === 'search-input' || view.name === 'ask' || view.name === 'sub-form') return;
     if (input === 'q') return exit();
     if (input === '?') return setHelpOpen(true);
+    if (input === 'T') return setThemePickerOpen(true);
   });
+
+  function handleThemeSelected(name: PaletteName): void {
+    setPaletteName(name);
+    setThemePickerOpen(false);
+  }
 
   function changeFeed(target: Feed): void {
     setFeed(target);
@@ -88,13 +101,23 @@ export function App({ initialQuery, initialView }: AppProps): JSX.Element {
   const ctx: ViewContext = { feed, config, setFeed: changeFeed, setTab: changeTab, setView, exit };
 
   return (
-    <Screen>
-      <Header>
-        <TabBar active={activeTab} />
-      </Header>
-      <Body>{helpOpen ? <HelpOverlay {...helpFor(view)} /> : renderBody(view, ctx)}</Body>
-      <Footer>{renderFooter(view, ctx)}</Footer>
-    </Screen>
+    <ThemeContext.Provider value={activeTheme}>
+      <Screen>
+        <Header>
+          <TabBar active={activeTab} />
+        </Header>
+        <Body>
+          {themePickerOpen ? (
+            <ThemePicker current={paletteName} onSelect={handleThemeSelected} onCancel={() => setThemePickerOpen(false)} />
+          ) : helpOpen ? (
+            <HelpOverlay {...helpFor(view)} />
+          ) : (
+            renderBody(view, ctx)
+          )}
+        </Body>
+        <Footer>{themePickerOpen ? footerHint(THEME_PICKER_KEYS) : renderFooter(view, ctx)}</Footer>
+      </Screen>
+    </ThemeContext.Provider>
   );
 }
 
