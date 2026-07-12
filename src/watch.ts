@@ -54,7 +54,11 @@ async function processSubscription(
 ): Promise<SubscriptionResult> {
   let stories: Story[];
   try {
-    stories = await searchRecent(sub.query, { createdAfter: windowStart(sub.lastRunAt, now), minPoints: sub.minPoints });
+    stories = await searchRecent(sub.query, {
+      createdAfter: windowStart(sub.lastRunAt, now),
+      minPoints: sub.minPoints,
+      minComments: sub.minComments,
+    });
   } catch (err) {
     log(`${sub.name}: query failed - ${(err as Error).message}`);
     return { notified: 0, hadFailure: true };

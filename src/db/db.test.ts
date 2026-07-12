@@ -39,7 +39,7 @@ describe('openDb', () => {
 
   it('bumps user_version to the number of migrations applied', () => {
     const db = openDb();
-    expect(db.pragma('user_version', { simple: true })).toBe(1);
+    expect(db.pragma('user_version', { simple: true })).toBe(2);
   });
 
   it('returns the same cached handle for the same path', () => {

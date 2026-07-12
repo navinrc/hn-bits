@@ -32,6 +32,7 @@ const MIGRATIONS: readonly string[] = [
     bookmarked_at INTEGER NOT NULL
   );
   `,
+  `ALTER TABLE subscriptions ADD COLUMN min_comments INTEGER NOT NULL DEFAULT 0;`,
 ];
 
 export function dbPath(): string {

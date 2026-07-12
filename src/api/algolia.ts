@@ -104,21 +104,41 @@ export interface RecentSearchOptions {
   createdAfter: number;
   /** 0/undefined = no threshold. */
   minPoints?: number;
+  /** 0/undefined = no threshold; OR'd with minPoints when both are set. */
+  minComments?: number;
   hitsPerPage?: number;
 }
+
+const DEFAULT_HITS_PER_PAGE = 50;
 
 /**
  * Recency-ordered search (subscription matching + watcher window rescans),
  * as opposed to searchStories' relevance ordering.
+ *
+ * Both thresholds are always pushed server-side. With one active it's a flat AND'd
+ * numericFilters string, same as before minComments existed. With both active, Algolia's
+ * nested-array numericFilters OR syntax (`[a, [b, c]]` = a AND (b OR c)) — verified live against
+ * hn.algolia.com — expresses `created_at_i>X AND (points>=N OR num_comments>=M)` in one request.
  */
 export async function searchRecent(query: string, options: RecentSearchOptions): Promise<Story[]> {
-  const numericFilters = [`created_at_i>${options.createdAfter}`];
-  if (options.minPoints) numericFilters.push(`points>=${options.minPoints}`);
+  const minPoints = options.minPoints ?? 0;
+  const minComments = options.minComments ?? 0;
+  const createdAfterFilter = `created_at_i>${options.createdAfter}`;
+
+  const numericFilters =
+    minPoints > 0 && minComments > 0
+      ? JSON.stringify([createdAfterFilter, [`points>=${minPoints}`, `num_comments>=${minComments}`]])
+      : [
+          createdAfterFilter,
+          ...(minPoints ? [`points>=${minPoints}`] : []),
+          ...(minComments ? [`num_comments>=${minComments}`] : []),
+        ].join(',');
+
   const params = new URLSearchParams({
     query,
     tags: 'story',
-    numericFilters: numericFilters.join(','),
-    hitsPerPage: String(options.hitsPerPage ?? 50),
+    numericFilters,
+    hitsPerPage: String(options.hitsPerPage ?? DEFAULT_HITS_PER_PAGE),
     typoTolerance: 'false',
     queryType: 'prefixNone',
   });
