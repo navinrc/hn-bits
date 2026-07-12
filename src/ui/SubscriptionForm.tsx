@@ -2,8 +2,9 @@ import { useEffect, useRef, useState, type JSX } from 'react';
 import { Box, Text, useInput, useWindowSize, type Key } from 'ink';
 import { searchRecent } from '../api/algolia.js';
 import type { Story } from '../api/firebase.js';
-import { addSubscription, updateSubscription, type Subscription } from '../db/subscriptions.js';
+import { addSubscription, listSubscriptions, updateSubscription, type Subscription } from '../db/subscriptions.js';
 import { truncateTitle } from '../lib/format.js';
+import { hasScheduledJob, installScheduledJob } from '../lib/schedule.js';
 import { useTheme } from './theme.js';
 
 const PREVIEW_DEBOUNCE_MS = 300;
@@ -40,6 +41,7 @@ export function SubscriptionForm({
   const [field, setField] = useState<Field>('name');
   const [error, setError] = useState('');
   const [preview, setPreview] = useState<Story[]>([]);
+  const [scheduleConfirm, setScheduleConfirm] = useState(false);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const previewToken = useRef(0);
 
@@ -76,13 +78,34 @@ export function SubscriptionForm({
     try {
       if (mode === 'add') addSubscription(trimmedName, trimmedQuery, points);
       else updateSubscription(subscription!.id, { name: trimmedName, query: trimmedQuery, minPoints: points });
+      if (mode === 'add' && listSubscriptions().length === 1 && !hasScheduledJob()) {
+        setScheduleConfirm(true);
+        return;
+      }
       onSave();
     } catch (err) {
       setError((err as Error).message);
     }
   }
 
+  function resolveScheduleConfirm(install: boolean): void {
+    if (install) {
+      try {
+        installScheduledJob();
+      } catch {
+        // hn not on PATH; user can run `hn schedule install` later
+      }
+    }
+    setScheduleConfirm(false);
+    onSave();
+  }
+
   function handleInput(input: string, key: Key): void {
+    if (scheduleConfirm) {
+      if (input === 'y') return resolveScheduleConfirm(true);
+      if (input === 'n' || key.escape) return resolveScheduleConfirm(false);
+      return;
+    }
     if (key.escape) return onCancel();
     if (key.tab) {
       const index = FIELD_ORDER.indexOf(field);
@@ -142,7 +165,11 @@ export function SubscriptionForm({
       )}
       {error && <Text color={theme.colors.error}>{error}</Text>}
       <Text> </Text>
-      <Text dimColor>tab next field · enter save · esc cancel</Text>
+      {scheduleConfirm ? (
+        <Text dimColor>no watch schedule installed yet - install one now (every 30 min)? y/n</Text>
+      ) : (
+        <Text dimColor>tab next field · enter save · esc cancel</Text>
+      )}
     </Box>
   );
 }
