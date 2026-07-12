@@ -26,6 +26,7 @@ hn config set desktopNotifications.timeoutSeconds 10   # optional, default 10
 ## Implementation (`desktop.ts`)
 
 - **Binary discovery:** `alerter` looked up on `PATH` once per watcher run. Missing = one stderr warning `desktop: alerter not found (brew install vjeantet/tap/alerter), skipping` and the notifier is disabled for the run. Never exit 2; telegram unaffected.
+- **Desktop-only + missing binary:** the run stops after the warning with exit 0 and touches nothing — no queries, no `markSeen`, no `touchLastRun`. Matches are picked up by the first run after install instead of being silently marked seen.
 - **Invocation:** alerter has no `-open` flag and blocks until the notification is clicked, dismissed, or times out, printing the result. So `send()` spawns a detached `sh -c` wrapper (stdio ignored, `unref()`):
 
 ```sh
