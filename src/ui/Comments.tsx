@@ -4,6 +4,7 @@ import open from 'open';
 import { buildCommentsSummaryPrompt } from '../ai/summaryPrompts.js';
 import { fetchComments, type CommentNode } from '../api/algolia.js';
 import { hnItemUrl, type Story } from '../api/firebase.js';
+import { toggleBookmark } from '../db/bookmarks.js';
 import {
   collapseAll,
   flattenTree,
@@ -25,6 +26,7 @@ import { HEADER_ROWS } from './Layout.js';
 import { LoadingIndicator } from './LoadingIndicator.js';
 import { SummaryPanel } from './SummaryPanel.js';
 import { theme } from './theme.js';
+import { useFlash } from './useFlash.js';
 
 const HEADER_BORDER_LINES = 2;
 // borderStyle (2 cols) + paddingX (2 cols) eaten from the card's interior width.
@@ -65,6 +67,7 @@ export function Comments({ story, config, onBack, onAskAI }: CommentsProps): JSX
   });
   const [selected, setSelected] = useState(0);
   const [summaryOpen, setSummaryOpen] = useState(false);
+  const [flashMessage, flash] = useFlash();
   const pendingTopJump = useRef(false);
   const topLineRef = useRef(0);
   const { folded, headerOnly, revealed } = fold;
@@ -136,6 +139,7 @@ export function Comments({ story, config, onBack, onAskAI }: CommentsProps): JSX
     if (input === 'r') return void load();
     if (input === 's') return setSummaryOpen(true);
     if (input === 'a') return onAskAI(comments);
+    if (input === 'B') return flash(toggleBookmark(story) ? 'bookmarked ✓' : 'bookmark removed');
   }
 
   useInput(handleInput, { isActive: !summaryOpen });
@@ -144,7 +148,8 @@ export function Comments({ story, config, onBack, onAskAI }: CommentsProps): JSX
   if (status === 'error') return <Text color={theme.colors.error}>{error} (r to retry)</Text>;
 
   const panelHeight = summaryOpen ? Math.max(6, Math.floor(viewportLines / 2)) : 0;
-  const listViewportLines = Math.max(1, viewportLines - panelHeight);
+  const flashLineHeight = flashMessage ? 1 : 0;
+  const listViewportLines = Math.max(1, viewportLines - panelHeight - flashLineHeight);
   const heights = rowsData.map((row) => row.lines.length);
   const topLine = ensureVisibleLines(heights, clampedSelected, topLineRef.current, listViewportLines);
   topLineRef.current = topLine;
@@ -153,6 +158,7 @@ export function Comments({ story, config, onBack, onAskAI }: CommentsProps): JSX
   return (
     <Box flexDirection="column">
       <CommentsHeader story={story} />
+      {flashMessage && <Text dimColor>{flashMessage}</Text>}
       {flat.length === 0 && <Text dimColor>no comments yet</Text>}
       {rowsData.slice(first, last + 1).map((row, i) => {
         const rowIndex = first + i;

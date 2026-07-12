@@ -17,6 +17,7 @@ export interface Theme {
     foldOpen: string;
     foldClosed: string;
     upvote: string;
+    bookmark: string;
   };
 }
 
@@ -25,6 +26,7 @@ const glyphs: Theme['glyphs'] = {
   foldOpen: '▾',
   foldClosed: '▸',
   upvote: '▲',
+  bookmark: '★',
 };
 
 function ansi256(code: number): string {

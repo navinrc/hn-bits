@@ -1,6 +1,7 @@
 import { type JSX } from 'react';
 import { Box, Text } from 'ink';
 import type { Story } from '../api/firebase.js';
+import { isBookmarked } from '../db/bookmarks.js';
 import { formatAge, truncateTitle } from '../lib/format.js';
 import { getHostname } from '../lib/url.js';
 import { theme } from './theme.js';
@@ -45,7 +46,9 @@ export function StoryRow({
   const titleWidth = Math.max(1, safeWidth - prefix.length - hostnameSuffix.length);
   const title = truncateTitle(story.title, titleWidth);
   const background = isSelected ? theme.colors.selectionBackground : undefined;
-  const meta = metaText(story);
+  const bookmarked = isBookmarked(story.id);
+  const starPrefix = bookmarked ? `${theme.glyphs.bookmark} ` : '';
+  const meta = `${starPrefix}${metaText(story)}`;
 
   return (
     <Box flexDirection="column">
@@ -60,6 +63,7 @@ export function StoryRow({
       {showMeta && (
         <Text backgroundColor={background}>
           {' '.repeat(prefix.length)}
+          {bookmarked && <Text color={theme.colors.accent}>{starPrefix}</Text>}
           <Text color={theme.colors.score}>{story.score} points</Text>
           <Text color={theme.colors.muted}>
             {' '}

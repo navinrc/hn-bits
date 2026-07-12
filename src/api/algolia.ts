@@ -69,6 +69,18 @@ export interface SearchResult {
   totalHits: number;
 }
 
+function hitToStory(hit: SearchHit): Story {
+  return {
+    id: Number(hit.objectID),
+    title: hit.title!,
+    url: hit.url ?? undefined,
+    by: hit.author ?? '?',
+    score: hit.points ?? 0,
+    descendants: hit.num_comments ?? 0,
+    time: hit.created_at_i,
+  };
+}
+
 export async function searchStories(
   query: string,
   page = 0,
@@ -81,18 +93,35 @@ export async function searchStories(
   });
   const res = await getJson<SearchResponse>(`${BASE}/search?${params}`);
   return {
-    stories: res.hits
-      .filter((h) => h.title != null)
-      .map((h) => ({
-        id: Number(h.objectID),
-        title: h.title!,
-        url: h.url ?? undefined,
-        by: h.author ?? '?',
-        score: h.points ?? 0,
-        descendants: h.num_comments ?? 0,
-        time: h.created_at_i,
-      })),
+    stories: res.hits.filter((h) => h.title != null).map(hitToStory),
     hasMore: page + 1 < res.nbPages,
     totalHits: res.nbHits,
   };
+}
+
+export interface RecentSearchOptions {
+  /** Unix seconds; only stories created after this are returned. */
+  createdAfter: number;
+  /** 0/undefined = no threshold. */
+  minPoints?: number;
+  hitsPerPage?: number;
+}
+
+/**
+ * Recency-ordered search (subscription matching + watcher window rescans),
+ * as opposed to searchStories' relevance ordering.
+ */
+export async function searchRecent(query: string, options: RecentSearchOptions): Promise<Story[]> {
+  const numericFilters = [`created_at_i>${options.createdAfter}`];
+  if (options.minPoints) numericFilters.push(`points>=${options.minPoints}`);
+  const params = new URLSearchParams({
+    query,
+    tags: 'story',
+    numericFilters: numericFilters.join(','),
+    hitsPerPage: String(options.hitsPerPage ?? 50),
+    typoTolerance: 'false',
+    queryType: 'prefixNone',
+  });
+  const res = await getJson<SearchResponse>(`${BASE}/search_by_date?${params}`);
+  return res.hits.filter((h) => h.title != null).map(hitToStory);
 }

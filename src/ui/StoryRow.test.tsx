@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { Story } from '../api/firebase.js';
+import { toggleBookmark } from '../db/bookmarks.js';
+import { useTempDb } from '../test/dbHarness.js';
 import { render } from '../test/inkHarness.js';
 import { StoryRow } from './StoryRow.js';
+
+useTempDb('hn-bits-storyrow-');
 
 const WIDTH = 100;
 
@@ -27,6 +31,21 @@ describe('StoryRow', () => {
     for (const line of lines) {
       expect(line.length).toBeLessThan(WIDTH);
     }
+    instance.unmount();
+  });
+
+  it('shows no star for a story that is not bookmarked', async () => {
+    const instance = render(<StoryRow story={story} rank={1} rankWidth={1} isSelected={false} width={WIDTH} />, WIDTH, 5);
+    await instance.waitUntilRenderFlush();
+    expect(instance.lastFrame()).not.toContain('★');
+    instance.unmount();
+  });
+
+  it('shows a ★ prefix on the meta line for a bookmarked story', async () => {
+    toggleBookmark(story);
+    const instance = render(<StoryRow story={story} rank={1} rankWidth={1} isSelected={false} width={WIDTH} />, WIDTH, 5);
+    await instance.waitUntilRenderFlush();
+    expect(instance.lastFrame()).toContain('★ 251 points');
     instance.unmount();
   });
 });

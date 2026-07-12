@@ -1,23 +1,25 @@
 import { type JSX } from 'react';
 import { Box, Text, useWindowSize } from 'ink';
-import type { Feed } from '../api/firebase.js';
+import type { TabId } from '../lib/listNavigation.js';
 import { theme } from './theme.js';
 
 interface TabBarProps {
-  active: Feed;
+  active: TabId;
 }
 
 interface Tab {
-  feed: Feed;
+  id: TabId;
   label: string;
 }
 
 const TABS: Tab[] = [
-  { feed: 'top', label: 'Top' },
-  { feed: 'new', label: 'New' },
-  { feed: 'best', label: 'Best' },
-  { feed: 'ask', label: 'Ask' },
-  { feed: 'show', label: 'Show' },
+  { id: 'top', label: 'Top' },
+  { id: 'new', label: 'New' },
+  { id: 'best', label: 'Best' },
+  { id: 'ask', label: 'Ask' },
+  { id: 'show', label: 'Show' },
+  { id: 'saved', label: 'Saved' },
+  { id: 'subs', label: 'Subs' },
 ];
 
 const BRAND = 'Hacker News';
@@ -38,13 +40,13 @@ interface TabLine {
   activeInnerWidth: number;
 }
 
-function tabSegment(tab: Tab, active: Feed): { segment: Segment; width: number } {
-  if (tab.feed !== active) return { segment: { text: tab.label, color: 'muted' }, width: tab.label.length };
+function tabSegment(tab: Tab, active: TabId): { segment: Segment; width: number } {
+  if (tab.id !== active) return { segment: { text: tab.label, color: 'muted' }, width: tab.label.length };
   const inner = ` ${tab.label} `;
   return { segment: { text: `│${inner}│`, color: 'accent', bold: true }, width: inner.length };
 }
 
-function buildTabSegments(active: Feed): TabLine {
+function buildTabSegments(active: TabId): TabLine {
   const segments: Segment[] = [{ text: `  ${BRAND}${TAB_GAP}`, color: 'accent', bold: true }];
   let column = segments[0]!.text.length;
   let activeWallColumn = 0;
@@ -57,7 +59,7 @@ function buildTabSegments(active: Feed): TabLine {
     }
     const { segment, width } = tabSegment(tab, active);
     segments.push(segment);
-    if (tab.feed === active) {
+    if (tab.id === active) {
       activeWallColumn = column;
       activeInnerWidth = width;
     }
@@ -72,7 +74,7 @@ function appendHint(segments: Segment[], usedColumns: number, columns: number): 
   segments.push({ text: ' '.repeat(padding), color: 'muted' }, { text: HELP_HINT, color: 'muted' });
 }
 
-function buildLine(active: Feed, columns: number): TabLine {
+function buildLine(active: TabId, columns: number): TabLine {
   const line = buildTabSegments(active);
   const usedColumns = line.segments.reduce((sum, segment) => sum + segment.text.length, 0);
   appendHint(line.segments, usedColumns, columns);

@@ -1,8 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CommentNode } from '../api/algolia.js';
 import type { Story } from '../api/firebase.js';
+import { useTempDb } from '../test/dbHarness.js';
 import { render } from '../test/inkHarness.js';
 import { Comments } from './Comments.js';
+
+useTempDb('hn-bits-comments-');
 
 const now = Math.floor(Date.now() / 1000);
 
