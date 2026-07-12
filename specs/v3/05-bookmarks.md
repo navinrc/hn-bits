@@ -16,7 +16,7 @@ Available in the **story list** (feeds + search results, selected row) and in **
 
 ## Listing — the `saved` tab
 
-Bookmarks are a 6th tab in the `TabBar`: `Top New Best Ask Show Saved`. Reached like any tab (`←/→`); `hn bookmarks` opens the TUI with the saved tab active.
+Bookmarks are a 6th tab in the `TabBar`: `Top New Best Ask Show Saved` (a 7th `Subs` tab follows it, [06-subscriptions-tui.md](06-subscriptions-tui.md)). Reached like any tab (`←/→`); `hn bookmarks` opens the TUI with the saved tab active.
 
 ```text
                                                  ╭───────╮
@@ -34,11 +34,12 @@ Bookmarks are a 6th tab in the `TabBar`: `Top New Best Ask Show Saved`. Reached 
 
 Differences from feed tabs:
 
-- Data source = `listBookmarks()` (local, newest bookmarked first) instead of a Firebase feed — no network, no progressive fetch. Reuses **`StoryListView`** (the presentational windowed list, same as search results), not the `StoryList` fetch container. Continuous-scroll windowing as everywhere; no paging.
+- Data source = `listBookmarks()` (local, newest bookmarked first) instead of a Firebase feed — no network, no progressive fetch. Rendered by a **`SavedList`** container wrapping **`StoryListView`** (the presentational windowed list, same as search results), not the `StoryList` fetch container: `StoryListView` has no `useInput`, so `SavedList` owns key handling and the `SummaryPanel`/Ask-AI wiring. Continuous-scroll windowing as everywhere; no paging.
 - `TabBar`'s `active` prop widens from `Feed` to `Feed | 'saved'` (`TABS` gains the entry; the notch math is width-driven and needs no change).
 - `t`/`n`/`b` jump to their feeds as usual; `/` stays global Algolia search (no search *over* bookmarks in V3). `r` re-reads `listBookmarks()`.
 - `B` removes the selected bookmark; row disappears immediately.
 - `enter` opens Comments as normal (fetched live by story id; score/comment counts shown are the stored snapshot — staleness silently accepted).
+- `s` (summary) and `a` (ask ai) work on the Saved list itself, full parity with feed lists and search results. The snapshot has what they need: `url` for article extraction, `id` for the live comment fetch (`SAVED_KEYS` in `keymap.ts` lists them; wiring lives in `SavedList`).
 - Age shows story age (from snapshot `time`), matching other lists.
 - Empty state: `no bookmarks yet — press B on a story` (centered, muted), same slot as a feed's loading indicator.
 

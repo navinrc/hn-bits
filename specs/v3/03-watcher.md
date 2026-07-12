@@ -16,7 +16,7 @@ Headless Commander subcommand — never renders Ink. Output = plain log lines to
 
 ```mermaid
 flowchart TD
-    S[start] --> CFG{any notifier configured?<br/>telegram or desktop}
+    S[start] --> CFG{telegram enabled?}
     CFG -->|no| E1[stderr: no notifier configured<br/>exit 2]
     CFG -->|yes| SUBS[load subscriptions]
     SUBS -->|none| E0[stdout: no subscriptions<br/>exit 0]
@@ -38,7 +38,7 @@ flowchart TD
 ## Rules
 
 - **Ordering:** subscriptions processed sequentially (rate-friendly to Algolia and Telegram); stories within one oldest-first (notifications arrive in creation order).
-- **Dedup before send**, `markSeen` only **after** successful send — failed sends retry next run (idempotency via seen_items). "Successful send" = telegram succeeded; desktop is best-effort and never blocks markSeen ([04-notifications.md](04-notifications.md)). Desktop-only config: a spawned wrapper counts as sent — at-most-once delivery, accepted.
+- **Dedup before send**, `markSeen` only **after** successful send — failed sends retry next run (idempotency via seen_items). V3.5 refines "successful send" for its best-effort desktop channel ([../v3.5/01-desktop-notifications.md](../v3.5/01-desktop-notifications.md)).
 - **`touchLastRun`** updated only when the subscription's Algolia query succeeded (send failures don't block the window — seen_items handles those); Algolia failure leaves `lastRunAt` untouched so the window re-covers the gap.
 - **Errors are per-subscription:** one failing query/send never aborts the others.
 - **`--dry-run`:** full pipeline, prints `would notify: [sub] title (points)` lines, zero writes.
@@ -49,13 +49,12 @@ flowchart TD
 |------|---------|
 | 0 | pass completed (with or without notifications) |
 | 1 | pass completed but ≥1 subscription had query/send failures (cron mail signal) |
-| 2 | misconfiguration (no notifier configured — neither telegram nor desktop) — fix before scheduling |
+| 2 | misconfiguration (telegram not enabled; V3.5 widens to "no notifier enabled at all") — fix before scheduling |
 
 ## Log format
 
 ```text
 [2026-07-07T10:30:01Z] watch: 3 subscriptions
-[2026-07-07T10:30:01Z] desktop: alerter not found (brew install vjeantet/tap/alerter), skipping
 [2026-07-07T10:30:02Z] postgres: 2 new matches
 [2026-07-07T10:30:03Z] postgres: notified 41211001 "Postgres 18 released" (312 pts)
 [2026-07-07T10:30:04Z] zig-lang: no new matches

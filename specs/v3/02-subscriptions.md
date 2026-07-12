@@ -1,6 +1,6 @@
 # Subscriptions (`src/db/subscriptions.ts` + `hn sub` CLI)
 
-A subscription = named topic watch: Algolia full-text query + optional score threshold.
+A subscription = named topic watch: Algolia full-text query + optional score threshold. Managed from the CLI (below) and from the TUI's subs tab ([06-subscriptions-tui.md](06-subscriptions-tui.md)); both go through `src/db/subscriptions.ts`.
 
 ## Model
 
@@ -15,7 +15,7 @@ interface Subscription {
 }
 ```
 
-## CLI (Commander subcommands — management is CLI-only in V3, no TUI screen)
+## CLI (Commander subcommands; kept alongside the TUI for scripting and remote shells)
 
 ```bash
 hn sub add <name> <query...> [--min-points <n>]
@@ -38,7 +38,7 @@ hn sub list
 hn sub rm zig-lang
 ```
 
-## Matching semantics (used by watcher, [03-watcher.md](03-watcher.md))
+## Matching semantics (used by watcher, [03-watcher.md](03-watcher.md); the TUI matches view uses a fixed 7-day browsing window instead, see [06-subscriptions-tui.md](06-subscriptions-tui.md))
 
 Per subscription, one Algolia call:
 
