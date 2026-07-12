@@ -110,18 +110,24 @@ export interface RecentSearchOptions {
   hitsPerPage?: number;
 }
 
+const MAX_HITS_PER_PAGE = 50;
+
 /**
  * Recency-ordered search (subscription matching + watcher window rescans),
  * as opposed to searchStories' relevance ordering.
  *
  * With a single active threshold it's pushed server-side as a numericFilter, same as before.
  * With both active, Algolia OR-group syntax is skipped (unverified, adds encoding complexity)
- * in favor of filtering the returned page client-side via passesThreshold.
+ * in favor of filtering the returned page client-side via passesThreshold — but that means
+ * fetching against the full MAX_HITS_PER_PAGE candidate pool rather than the caller's
+ * (possibly much smaller, e.g. preview's 5) requested limit, or an OR filter would be narrowed
+ * by a cap meant to apply after it, not before.
  */
 export async function searchRecent(query: string, options: RecentSearchOptions): Promise<Story[]> {
   const minPoints = options.minPoints ?? 0;
   const minComments = options.minComments ?? 0;
   const bothActive = minPoints > 0 && minComments > 0;
+  const requestedLimit = options.hitsPerPage ?? MAX_HITS_PER_PAGE;
 
   const numericFilters = [`created_at_i>${options.createdAfter}`];
   if (!bothActive) {
@@ -132,11 +138,12 @@ export async function searchRecent(query: string, options: RecentSearchOptions):
     query,
     tags: 'story',
     numericFilters: numericFilters.join(','),
-    hitsPerPage: String(options.hitsPerPage ?? 50),
+    hitsPerPage: String(bothActive ? MAX_HITS_PER_PAGE : requestedLimit),
     typoTolerance: 'false',
     queryType: 'prefixNone',
   });
   const res = await getJson<SearchResponse>(`${BASE}/search_by_date?${params}`);
   const stories = res.hits.filter((h) => h.title != null).map(hitToStory);
-  return bothActive ? stories.filter((s) => passesThreshold(s, minPoints, minComments)) : stories;
+  if (!bothActive) return stories;
+  return stories.filter((s) => passesThreshold(s, minPoints, minComments)).slice(0, requestedLimit);
 }

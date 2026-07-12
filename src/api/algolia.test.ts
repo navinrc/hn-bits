@@ -73,6 +73,33 @@ describe('searchRecent', () => {
     expect(stories.map((s) => s.id)).toEqual([1, 3]);
   });
 
+  it('over-fetches the full 50-hit pool (not the caller-requested limit) when both thresholds are active, then trims after filtering', async () => {
+    // 10 raw hits, 8 pass minPoints>=20. A naive hitsPerPage=5-then-filter would only ever
+    // see the first 5 raw hits and could keep as few as 3; over-fetching first should find
+    // all 8 matches, then trim down to the caller's requested limit of 5.
+    const hits = Array.from({ length: 10 }, (_, i) => ({
+      objectID: String(i),
+      title: `story ${i}`,
+      url: null,
+      author: 'a',
+      points: i < 8 ? 20 : 0,
+      num_comments: 0,
+      created_at_i: 2000 + i,
+    }));
+    vi.mocked(fetch).mockResolvedValue(jsonResponse({ hits, nbPages: 1, nbHits: 10 }));
+
+    const stories = await searchRecent('apple', {
+      createdAfter: 1000,
+      minPoints: 20,
+      minComments: 5,
+      hitsPerPage: 5,
+    });
+
+    const url = new URL(vi.mocked(fetch).mock.calls[0]![0] as string);
+    expect(url.searchParams.get('hitsPerPage')).toBe('50');
+    expect(stories.map((s) => s.id)).toEqual([0, 1, 2, 3, 4]);
+  });
+
   it('maps hits to stories and drops hits with no title', async () => {
     vi.mocked(fetch).mockResolvedValue(
       jsonResponse({
