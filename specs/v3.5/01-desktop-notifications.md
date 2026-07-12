@@ -12,6 +12,8 @@ Prerequisites: V3 complete (Notifier interface, watcher). Config keys already ex
 
 macOS-only via [alerter](https://github.com/vjeantet/alerter). Requires macOS 13+; some alerter features use private APIs and may break on future macOS releases. Stick to the stable subset (no reply/dropdown actions; click-to-open is in).
 
+Permission caveat (found live): alerter impersonates Terminal.app (`--sender` default) and macOS silently drops notifications from senders the user hasn't allowed — alerter still prints `@TIMEOUT` and exits 0, so nothing in the watcher can detect it. Notification permission for Terminal must be granted once in System Settings; documented in the README.
+
 ## Config
 
 Keys shipped in V2.5 (`src/lib/configKeys.ts`), activated here:

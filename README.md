@@ -110,7 +110,9 @@ hn config set desktopNotifications.enabled true
 hn config set desktopNotifications.timeoutSeconds 10   # optional, default 10
 ```
 
-Clicking a notification opens the story URL (HN discussion for text posts). Desktop delivery is best-effort: if `alerter` is missing, the watcher warns and skips it (exit 0, nothing marked seen when it's the only channel).
+Clicking a notification opens the story URL (HN discussion for text posts) — clicks act only while the notification is on screen (`timeoutSeconds`); stale entries in Notification Center just dismiss. Desktop delivery is best-effort: if `alerter` is missing, the watcher warns and skips it (exit 0, nothing marked seen when it's the only channel).
+
+One-time macOS setup: alerter sends as Terminal.app, and macOS silently drops notifications from senders without permission. Check System Settings > Notifications > Terminal is allowed (banner style) — there is no prompt and no error when it isn't.
 
 ```bash
 hn watch --once   # one pass: query subscriptions, notify new matches, exit
