@@ -10,15 +10,16 @@ function crontabFixture(...lines: string[]): string {
   return lines.length > 0 ? `${lines.join('\n')}\n` : '';
 }
 
-/** Routes execSync by command so `crontab -l` / `crontab -` / `which hn` can each return canned output. */
-function stubExecSync(options: { crontab?: string; hnPath?: string }): void {
-  const { crontab = '', hnPath = '/usr/local/bin/hn' } = options;
+/** Routes execSync by command so `crontab -l` / `crontab -` / `which hn` / `which node` can each return canned output. */
+function stubExecSync(options: { crontab?: string; hnPath?: string; nodePath?: string }): void {
+  const { crontab = '', hnPath = '/usr/local/bin/hn', nodePath = '/usr/local/bin/node' } = options;
   mocks.execSync.mockImplementation((command: string) => {
     if (command === 'crontab -l') {
       if (crontab === '') throw new Error('crontab: no crontab for user');
       return crontab;
     }
     if (command === 'which hn') return `${hnPath}\n`;
+    if (command === 'which node') return `${nodePath}\n`;
     if (command === 'crontab -') return '';
     throw new Error(`unexpected command: ${command}`);
   });
@@ -57,6 +58,14 @@ describe('installScheduledJob', () => {
     expect(line).toContain('# hn-bits watch');
     expect(line).toContain('/usr/local/bin/hn watch --once');
     expect(mocks.execSync).toHaveBeenCalledWith('crontab -', { input: `${line}\n`, encoding: 'utf-8' });
+  });
+
+  it('invokes node directly rather than relying on the hn shebang, since cron PATH may lack it', async () => {
+    stubExecSync({ crontab: '', hnPath: '/Users/x/.nvm/versions/node/v24/bin/hn', nodePath: '/Users/x/.nvm/versions/node/v24/bin/node' });
+    const { installScheduledJob } = await import('./schedule.js');
+    const line = installScheduledJob();
+
+    expect(line.startsWith('*/30 * * * * /Users/x/.nvm/versions/node/v24/bin/node /Users/x/.nvm/versions/node/v24/bin/hn watch --once')).toBe(true);
   });
 
   it('appends to an existing crontab without touching unrelated lines', async () => {

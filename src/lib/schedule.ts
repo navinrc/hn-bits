@@ -24,8 +24,14 @@ function resolveHnPath(): string {
   return execSync('which hn', { encoding: 'utf-8' }).trim();
 }
 
-function buildCronLine(hnPath: string): string {
-  return `*/30 * * * * ${hnPath} watch --once >> ${watchLogPath()} 2>&1 ${MARKER}`;
+function resolveNodePath(): string {
+  return execSync('which node', { encoding: 'utf-8' }).trim();
+}
+
+/** Invokes node directly rather than relying on hn's `#!/usr/bin/env node` shebang, since cron's
+ * minimal PATH (unlike an interactive shell) usually can't resolve a version-manager-installed node. */
+function buildCronLine(nodePath: string, hnPath: string): string {
+  return `*/30 * * * * ${nodePath} ${hnPath} watch --once >> ${watchLogPath()} 2>&1 ${MARKER}`;
 }
 
 export function hasScheduledJob(): boolean {
@@ -40,7 +46,7 @@ export function installScheduledJob(): string {
   const existing = current.split('\n').find((line) => line.includes(MARKER));
   if (existing) return existing;
 
-  const line = buildCronLine(resolveHnPath());
+  const line = buildCronLine(resolveNodePath(), resolveHnPath());
   const body = current.trim().length > 0 ? `${current.replace(/\n+$/, '')}\n${line}\n` : `${line}\n`;
   writeCrontab(body);
   return line;
