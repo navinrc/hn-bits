@@ -106,9 +106,25 @@ Small slice between V2 and V3: hand-editing nested JSON for a Telegram bot token
 
 V2.5 is feature-complete against `specs/v2.5/`.
 
+## V3 — Radar (specs/v3/)
+
+Subscriptions (CLI + subs tab TUI) + watcher + Telegram + SQLite + bookmarks.
+
+| Phase | Status | Notes |
+|-------|--------|-------|
+| 1: SQLite storage | done | `better-sqlite3`, WAL mode, `$HN_BITS_DB` override (default `~/.local/share/hn-bits/hn-bits.db`); `db/db.ts` (`openDb`/`resetDbCache`, `PRAGMA user_version` migrations, cached handle per resolved path); `db/subscriptions.ts`, `db/seen.ts`, `db/bookmarks.ts` — thin prepared-statement modules, no ORM. Matches `specs/v3/01-storage.md` schema exactly |
+| 2: `hn sub` CLI | done | `add`/`list`/`rm` Commander subcommands in `src/index.tsx`, headless (plain `console.log`); duplicate-name and not-found both exit 1 |
+| 3: Bookmarks | done | `toggleBookmark` wired into `StoryList`/`SearchResults`/`Comments`/new `SavedList.tsx` via `B`; new `useFlash.ts` hook drives the transient "bookmarked ✓"/"bookmark removed" line (reserves 1 status row, same pattern as `loading more…`); `StoryRow` shows a `★` prefix (new `theme.glyphs.bookmark`) on the meta line. 6th **Saved** tab added to `TabBar`/`App`; `←/→` tab cycling generalized from `Feed`-only to `lib/listNavigation.ts`'s `TabId` (`nextFeed`/`previousFeed` → `nextTab`/`previousTab`, `TAB_ORDER` gains `'saved'`). `hn bookmarks` opens the TUI on Saved. New `src/test/dbHarness.ts` (`useTempDb`) keeps every story-list test off the real user DB |
+| 4: Notifier + Telegram | done | `notify/notifier.ts` (`Match`/`Notifier` interface — later channels are one-file additions); `notify/telegram.ts` (HTML `sendMessage`, escaped title/author, story link omitted for text posts, single 429 retry honoring `retry_after`, `NotifyError` otherwise) |
+| 5: Watcher | done | `api/algolia.ts` gains `searchRecent` (`search_by_date` + `numericFilters`, shared `hitToStory` mapping with `searchStories`); `src/watch.ts` — sequential per-subscription pass, `max(lastRunAt-6h, 0)` / `now-24h` first-run window, dedup via `seen_items` before send, `markSeen` only after a successful send, `touchLastRun` only on query success, `--dry-run` full pipeline zero writes; exit 0/1/2 and log format per spec. `hn watch --once [--dry-run]` in `src/index.tsx` (`--once` Commander-required) |
+| 6: Subscriptions TUI | done | 7th **Subs** tab (`TAB_ORDER` gains `'subs'`): `SubscriptionsView.tsx` (manager — local list, `enter` matches, `a`/`e`/`d` add/edit/delete with inline `y/n` confirm), `SubscriptionMatches.tsx` (fixed 7-day window via `searchRecent`, full story-list key parity incl. `B`/`s`/`a`), `SubscriptionForm.tsx` (tab-cycled fields, 300ms debounced live preview, inline validation reusing `addSubscription`/`updateSubscription`'s own duplicate-name check). `App.tsx` `View` gains `sub-matches`/`sub-form` (`sub-form.returnTo: View`, suppresses global `q`/`?` like Ask AI); `Comments`' `returnTo` widened to a new `StoryOriginView` union so comments opened from matches return there on `esc`. `S` in search results opens the add form prefilled with the query (focus on name). `hn subs` opens the TUI on Subs |
+
+V3 is feature-complete against `specs/v3/`. Verified per-phase live via tmux (bookmarks: star display, flash timing, Saved tab CRUD; watcher: all three exit codes against real Algolia, `--dry-run`, `--once` enforcement; subs TUI: manager, add-with-preview cross-checked against a direct Algolia query, matches browsing, bookmark toggle, delete confirm, and the full search → `S` → save → back-to-search-results loop) plus `npm test` (261 tests) and `npm run build` after every phase.
+
 ## Known gaps / follow-ups
 
 - V1.6 phases 1–8 complete; V1.6 is feature-complete against `specs/v1.6/`.
 - V2 phases 1–4 complete; V2 is feature-complete against `specs/v2/`.
 - V2.5 phase 1 complete; V2.5 is feature-complete against `specs/v2.5/`.
-- Next: V3 (subscriptions CLI + subs tab TUI + watcher + Telegram + SQLite + bookmarks) per `specs/v3/`; then the small slices V3.1 (theme config), V3.5 (desktop notify), V3.6 (Discord). V3.1 has no V3 dependency and can ship any time.
+- V3 phases 1–6 complete; V3 is feature-complete against `specs/v3/`.
+- Next: the small slices V3.1 (theme config), V3.5 (desktop notify), V3.6 (Discord). None depend on each other and can ship in any order.
