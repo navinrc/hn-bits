@@ -1,6 +1,6 @@
 {
   "name": "hn-bits",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Terminal-first Hacker News client",
   "type": "module",
   "repository": {
