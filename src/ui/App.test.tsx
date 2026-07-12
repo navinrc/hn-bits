@@ -1,10 +1,26 @@
-import { describe, expect, it, vi } from 'vitest';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { addSubscription } from '../db/subscriptions.js';
+import { getConfigValue } from '../lib/configStore.js';
 import { useTempDb } from '../test/dbHarness.js';
 import { render } from '../test/inkHarness.js';
 import { App } from './App.js';
 
 useTempDb('hn-bits-app-');
+
+let configDir: string;
+
+beforeEach(() => {
+  configDir = mkdtempSync(join(tmpdir(), 'hn-bits-app-config-'));
+  process.env.HN_BITS_CONFIG = join(configDir, 'config.json');
+});
+
+afterEach(() => {
+  rmSync(configDir, { recursive: true, force: true });
+  delete process.env.HN_BITS_CONFIG;
+});
 
 vi.mock('../api/firebase.js', () => ({
   fetchStoryIds: vi.fn(() => new Promise(() => {})),
@@ -73,11 +89,12 @@ describe('App', () => {
     await new Promise((resolve) => setTimeout(resolve, 30));
     await instance.waitUntilRenderFlush();
     expect(instance.lastFrame()).not.toContain('(current)');
+    expect(getConfigValue('ui.theme')).toBeUndefined();
 
     instance.unmount();
   });
 
-  it('applies the picked theme live on enter', async () => {
+  it('applies the picked theme live and persists it to config on enter', async () => {
     const instance = render(<App />, 80, 24);
     await instance.waitUntilRenderFlush();
 
@@ -89,6 +106,7 @@ describe('App', () => {
     await instance.waitUntilRenderFlush();
 
     expect(instance.lastFrame()).not.toContain('(current)');
+    expect(getConfigValue('ui.theme')).toBe('mocha');
 
     instance.stdin.writeInput('T');
     await instance.waitUntilRenderFlush();

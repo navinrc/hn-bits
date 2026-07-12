@@ -4,6 +4,7 @@ import type { CommentNode } from '../api/algolia.js';
 import type { Feed, Story } from '../api/firebase.js';
 import type { Subscription } from '../db/subscriptions.js';
 import { loadConfig, type Config } from '../lib/config.js';
+import { setConfigValue } from '../lib/configStore.js';
 import { nextTab, previousTab, type TabId } from '../lib/listNavigation.js';
 import { AskAI } from './AskAI.js';
 import { Comments } from './Comments.js';
@@ -81,6 +82,7 @@ export function App({ initialQuery, initialView }: AppProps): JSX.Element {
   });
 
   function handleThemeSelected(name: PaletteName): void {
+    setConfigValue('ui.theme', name);
     setPaletteName(name);
     setThemePickerOpen(false);
   }
