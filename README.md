@@ -1,6 +1,25 @@
 # hn-bits
 
-Terminal-first Hacker News client. Fullscreen TUI built with TypeScript + Ink (React for the terminal), backed by the HN Firebase and Algolia APIs. No database. Optional local-AI features (summaries + Ask AI) read a config file; everything else is fully stateless.
+A fullscreen terminal client for Hacker News, built with TypeScript + Ink. Optional local AI summaries via Ollama — no database, no cloud required.
+
+![npm version](https://img.shields.io/npm/v/hn-bits)
+[![CI](https://img.shields.io/github/actions/workflow/status/navinrc/hn-bits/release.yml)](https://github.com/navinrc/hn-bits/actions)
+[![Release](https://img.shields.io/github/v/release/navinrc/hn-bits)](https://github.com/navinrc/hn-bits/releases)
+[![npm downloads](https://img.shields.io/npm/dt/hn-bits)](https://www.npmjs.com/package/hn-bits)
+[![GitHub downloads](https://img.shields.io/github/downloads/navinrc/hn-bits/total)](https://github.com/navinrc/hn-bits/releases)
+![License](https://img.shields.io/badge/license-MIT-green)
+
+![Streaming article summary, then a multi-turn Ask AI conversation grounded in the same story](docs/ai-demo.gif)
+
+## Features
+
+- Fullscreen TUI — top/new/best/ask/show feeds, vim-style navigation
+- Threaded comments view with fold/collapse
+- Search across stories
+- 6 built-in themes (`hn`, `mocha`, `dracula`, `tokyo`, `nord`, `gruvbox`)
+- Local AI article/thread summaries via Ollama — no cloud calls
+- Ask AI — multi-turn Q&A grounded in the current story
+- Stateless — no database, config file only for optional AI settings
 
 ## Install
 
@@ -35,8 +54,6 @@ Press `?` from any view for the full keybinding help overlay.
 ### Local AI (summaries + Ask AI)
 
 Article/thread summaries (`s`) and interactive Q&A (`a`) run against a local [Ollama](https://ollama.com) instance — no cloud calls, no API keys. Optional: the app works fully without it, `s`/`a` just show a setup hint until configured.
-
-![Streaming article summary, then a multi-turn Ask AI conversation grounded in the same story](docs/ai-demo.gif)
 
 **Prerequisites**
 
