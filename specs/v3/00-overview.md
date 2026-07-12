@@ -61,6 +61,8 @@ src/
 │   ├── SubscriptionsView.tsx   # subs tab manager
 │   ├── SubscriptionMatches.tsx # per-topic matches (7-day window)
 │   └── SubscriptionForm.tsx    # add/edit with live preview
+├── lib/
+│   └── schedule.ts      # crontab install/status/remove for hn watch --once
 └── watch.ts             # hn watch --once entry
 ```
 

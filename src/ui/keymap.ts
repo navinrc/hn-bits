@@ -59,6 +59,7 @@ export const SUBS_KEYS: readonly KeyBinding[] = [
   { key: 'a', label: 'add' },
   { key: 'e', label: 'edit' },
   { key: 'd', label: 'delete' },
+  { key: 'c', label: 'schedule' },
 ];
 
 export const SUB_MATCHES_KEYS: readonly KeyBinding[] = [

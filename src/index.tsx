@@ -134,6 +134,24 @@ interface SubAddOptions {
   minPoints: string;
 }
 
+async function promptInstallSchedule(): Promise<void> {
+  const readline = await import('node:readline/promises');
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  const answer = await rl.question('No watch schedule installed yet. Install one now (every 30 min)? [y/N] ');
+  rl.close();
+  if (!/^y(es)?$/i.test(answer.trim())) {
+    console.log("skipped. Run 'hn schedule install' anytime, or add the cron line yourself (see README).");
+    return;
+  }
+  const { installScheduledJob } = await import('./lib/schedule.js');
+  try {
+    const line = installScheduledJob();
+    console.log(`installed: ${line}`);
+  } catch {
+    console.log("couldn't find 'hn' on PATH — add the cron line yourself (see README) or run 'hn schedule install' later.");
+  }
+}
+
 sub
   .command('add <name> <query...>')
   .description('Add a subscription')
@@ -144,13 +162,17 @@ sub
       console.error(`--min-points must be a non-negative integer, got '${options.minPoints}'`);
       process.exit(1);
     }
-    const { addSubscription } = await import('./db/subscriptions.js');
+    const { addSubscription, listSubscriptions } = await import('./db/subscriptions.js');
     try {
       addSubscription(name, queryParts.join(' '), minPoints);
       console.log(`added '${name}'`);
     } catch (err) {
       console.error((err as Error).message);
       process.exit(1);
+    }
+    const { hasScheduledJob } = await import('./lib/schedule.js');
+    if (listSubscriptions().length === 1 && !hasScheduledJob()) {
+      await promptInstallSchedule();
     }
   });
 
@@ -183,6 +205,37 @@ sub
       process.exit(1);
     }
     console.log(`removed '${name}'`);
+  });
+
+const schedule = program.command('schedule').description('Manage the cron job that runs `hn watch --once`');
+
+schedule
+  .command('status')
+  .description('Show whether the watch cron job is installed')
+  .action(async () => {
+    const { hasScheduledJob } = await import('./lib/schedule.js');
+    console.log(hasScheduledJob() ? 'installed' : 'not installed');
+  });
+
+schedule
+  .command('install')
+  .description('Install the watch cron job (no-op if already installed)')
+  .action(async () => {
+    const { installScheduledJob } = await import('./lib/schedule.js');
+    try {
+      console.log(`installed: ${installScheduledJob()}`);
+    } catch {
+      console.error("couldn't find 'hn' on PATH; add the cron line yourself (see README)");
+      process.exit(1);
+    }
+  });
+
+schedule
+  .command('remove')
+  .description('Remove the watch cron job')
+  .action(async () => {
+    const { removeScheduledJob } = await import('./lib/schedule.js');
+    console.log(removeScheduledJob() ? 'removed' : 'not installed');
   });
 
 interface WatchCliOptions {

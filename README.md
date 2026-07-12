@@ -107,7 +107,15 @@ All three keys are required, `telegram.enabled` alone is not enough. With nothin
 hn watch --once   # one pass: query subscriptions, notify new matches, exit
 ```
 
-Schedule it, e.g. every 30 minutes via crontab:
+The first `hn sub add` offers to install a cron job for you (every 30 minutes). Manage it anytime via the CLI, or `c` on the Subs tab (which also shows a live installed/not-installed status line):
+
+```bash
+hn schedule status   # installed / not installed
+hn schedule install  # install now (no-op if already installed)
+hn schedule remove   # uninstall
+```
+
+Or set it up by hand:
 
 ```
 */30 * * * * cd /path/to/hn-bits && hn watch --once
@@ -188,6 +196,9 @@ Same as story list, minus search; `B` removes a bookmark instead of adding one.
 | `a` | add subscription |
 | `e` | edit subscription |
 | `d` | delete subscription |
+| `c` | toggle watch cron schedule (install/remove) |
+
+Shows a `schedule: installed (every 30 min)` / `schedule: not installed` status line, so you don't need to drop to `hn schedule status` to check.
 
 **Sub matches** (opened from Subs via `enter`)
 

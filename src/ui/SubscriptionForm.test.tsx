@@ -11,8 +11,16 @@ function makeStory(id: number): Story {
   return { id, title: `Tokio ${id}`, url: `https://example.com/${id}`, by: 'alice', score: 100 + id, descendants: 0, time: 0 };
 }
 
-const mocks = vi.hoisted(() => ({ searchRecent: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  searchRecent: vi.fn(),
+  hasScheduledJob: vi.fn(),
+  installScheduledJob: vi.fn(),
+}));
 vi.mock('../api/algolia.js', () => ({ searchRecent: mocks.searchRecent }));
+vi.mock('../lib/schedule.js', () => ({
+  hasScheduledJob: mocks.hasScheduledJob,
+  installScheduledJob: mocks.installScheduledJob,
+}));
 const { searchRecent } = mocks;
 
 const TAB = '\t';
@@ -20,6 +28,7 @@ const TAB = '\t';
 beforeEach(() => {
   vi.clearAllMocks();
   searchRecent.mockResolvedValue([]);
+  mocks.hasScheduledJob.mockReturnValue(true); // most tests don't care about the schedule prompt
 });
 
 afterEach(() => {
@@ -171,6 +180,72 @@ describe('SubscriptionForm', () => {
 
     expect(onSave).not.toHaveBeenCalled();
     expect(instance.lastFrame()).toContain("subscription 'postgres' already exists");
+    instance.unmount();
+  });
+
+  it('prompts to install a schedule after the first subscription when none is installed', async () => {
+    mocks.hasScheduledJob.mockReturnValue(false);
+    const { instance, onSave } = renderForm();
+    await instance.waitUntilRenderFlush();
+
+    instance.stdin.writeInput('rust-async');
+    await instance.waitUntilRenderFlush();
+    instance.stdin.writeInput(TAB);
+    await instance.waitUntilRenderFlush();
+    instance.stdin.writeInput('rust async');
+    await instance.waitUntilRenderFlush();
+    instance.stdin.writeInput('\r');
+    await instance.waitUntilRenderFlush();
+
+    expect(onSave).not.toHaveBeenCalled();
+    expect(instance.lastFrame()).toContain('install one now');
+
+    instance.stdin.writeInput('y');
+    await instance.waitUntilRenderFlush();
+
+    expect(mocks.installScheduledJob).toHaveBeenCalled();
+    expect(onSave).toHaveBeenCalled();
+    instance.unmount();
+  });
+
+  it('skips installing when the user answers n to the schedule prompt', async () => {
+    mocks.hasScheduledJob.mockReturnValue(false);
+    const { instance, onSave } = renderForm();
+    await instance.waitUntilRenderFlush();
+
+    instance.stdin.writeInput('rust-async');
+    await instance.waitUntilRenderFlush();
+    instance.stdin.writeInput(TAB);
+    await instance.waitUntilRenderFlush();
+    instance.stdin.writeInput('rust async');
+    await instance.waitUntilRenderFlush();
+    instance.stdin.writeInput('\r');
+    await instance.waitUntilRenderFlush();
+
+    instance.stdin.writeInput('n');
+    await instance.waitUntilRenderFlush();
+
+    expect(mocks.installScheduledJob).not.toHaveBeenCalled();
+    expect(onSave).toHaveBeenCalled();
+    instance.unmount();
+  });
+
+  it('does not prompt when a schedule is already installed', async () => {
+    mocks.hasScheduledJob.mockReturnValue(true);
+    const { instance, onSave } = renderForm();
+    await instance.waitUntilRenderFlush();
+
+    instance.stdin.writeInput('rust-async');
+    await instance.waitUntilRenderFlush();
+    instance.stdin.writeInput(TAB);
+    await instance.waitUntilRenderFlush();
+    instance.stdin.writeInput('rust async');
+    await instance.waitUntilRenderFlush();
+    instance.stdin.writeInput('\r');
+    await instance.waitUntilRenderFlush();
+
+    expect(onSave).toHaveBeenCalled();
+    expect(instance.lastFrame()).not.toContain('install one now');
     instance.unmount();
   });
 

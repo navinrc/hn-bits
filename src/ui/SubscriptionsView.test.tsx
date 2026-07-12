@@ -1,10 +1,26 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { addSubscription, listSubscriptions } from '../db/subscriptions.js';
 import { useTempDb } from '../test/dbHarness.js';
 import { render } from '../test/inkHarness.js';
 import { SubscriptionsView } from './SubscriptionsView.js';
 
+const mocks = vi.hoisted(() => ({
+  hasScheduledJob: vi.fn(),
+  installScheduledJob: vi.fn(),
+  removeScheduledJob: vi.fn(),
+}));
+vi.mock('../lib/schedule.js', () => ({
+  hasScheduledJob: mocks.hasScheduledJob,
+  installScheduledJob: mocks.installScheduledJob,
+  removeScheduledJob: mocks.removeScheduledJob,
+}));
+
 useTempDb('hn-bits-subsview-');
+
+beforeEach(() => {
+  vi.resetAllMocks();
+  mocks.hasScheduledJob.mockReturnValue(true); // most tests don't care about the schedule line
+});
 
 function renderView() {
   const onSelectMatches = vi.fn();
@@ -105,6 +121,83 @@ describe('SubscriptionsView', () => {
 
     expect(listSubscriptions()).toHaveLength(1);
     expect(instance.lastFrame()).not.toContain('delete');
+    instance.unmount();
+  });
+
+  it('shows "schedule: not installed" when no cron job is installed', async () => {
+    mocks.hasScheduledJob.mockReturnValue(false);
+    const { instance } = renderView();
+    await instance.waitUntilRenderFlush();
+    expect(instance.lastFrame()).toContain('schedule: not installed');
+    instance.unmount();
+  });
+
+  it('shows "schedule: installed (every 30 min)" when a cron job is installed', async () => {
+    mocks.hasScheduledJob.mockReturnValue(true);
+    const { instance } = renderView();
+    await instance.waitUntilRenderFlush();
+    expect(instance.lastFrame()).toContain('schedule: installed (every 30 min)');
+    instance.unmount();
+  });
+
+  it('installs the schedule on c when not installed', async () => {
+    mocks.hasScheduledJob.mockReturnValue(false);
+    addSubscription('postgres', 'postgres', 0);
+    const { instance } = renderView();
+    await instance.waitUntilRenderFlush();
+
+    instance.stdin.writeInput('c');
+    await instance.waitUntilRenderFlush();
+
+    expect(mocks.installScheduledJob).toHaveBeenCalled();
+    expect(instance.lastFrame()).toContain('schedule: installed (every 30 min)');
+    instance.unmount();
+  });
+
+  it('removes the schedule on c when installed', async () => {
+    mocks.hasScheduledJob.mockReturnValue(true);
+    addSubscription('postgres', 'postgres', 0);
+    const { instance } = renderView();
+    await instance.waitUntilRenderFlush();
+
+    instance.stdin.writeInput('c');
+    await instance.waitUntilRenderFlush();
+
+    expect(mocks.removeScheduledJob).toHaveBeenCalled();
+    expect(instance.lastFrame()).toContain('schedule: not installed');
+    instance.unmount();
+  });
+
+  it("shows a failure message when hn isn't on PATH", async () => {
+    mocks.hasScheduledJob.mockReturnValue(false);
+    mocks.installScheduledJob.mockImplementation(() => {
+      throw new Error('no hn');
+    });
+    addSubscription('postgres', 'postgres', 0);
+    const { instance } = renderView();
+    await instance.waitUntilRenderFlush();
+
+    instance.stdin.writeInput('c');
+    await instance.waitUntilRenderFlush();
+
+    expect(instance.lastFrame()).toContain("couldn't find 'hn' on PATH");
+    expect(instance.lastFrame()).toContain('schedule: not installed');
+    instance.unmount();
+  });
+
+  it('shows and toggles the schedule status line in the empty-subscriptions state', async () => {
+    mocks.hasScheduledJob.mockReturnValue(false);
+    const { instance } = renderView();
+    await instance.waitUntilRenderFlush();
+
+    expect(instance.lastFrame()).toContain('no subscriptions yet');
+    expect(instance.lastFrame()).toContain('schedule: not installed');
+
+    instance.stdin.writeInput('c');
+    await instance.waitUntilRenderFlush();
+
+    expect(mocks.installScheduledJob).toHaveBeenCalled();
+    expect(instance.lastFrame()).toContain('schedule: installed (every 30 min)');
     instance.unmount();
   });
 });
