@@ -3,6 +3,7 @@ import type { Story } from './api/firebase.js';
 import { isSeen, markSeen } from './db/seen.js';
 import { listSubscriptions, touchLastRun, type Subscription } from './db/subscriptions.js';
 import { loadConfig } from './lib/config.js';
+import { createDesktopNotifier } from './notify/desktop.js';
 import type { Notifier } from './notify/notifier.js';
 import { createTelegramNotifier } from './notify/telegram.js';
 
@@ -22,13 +23,30 @@ function windowStart(lastRunAt: number | null, now: number): number {
   return Math.max(lastRunAt - SIX_HOURS, 0);
 }
 
-function buildNotifiers(): Notifier[] {
+interface BuiltNotifiers {
+  notifiers: Notifier[];
+  /** Desktop was enabled but alerter is missing: warned, run must exit 0 untouched. */
+  desktopSkipped: boolean;
+}
+
+function buildNotifiers(): BuiltNotifiers {
   const config = loadConfig();
+  const notifiers: Notifier[] = [];
+  let desktopSkipped = false;
+
   const telegram = config?.telegram;
   if (telegram?.enabled && telegram.botToken && telegram.chatId) {
-    return [createTelegramNotifier({ botToken: telegram.botToken, chatId: telegram.chatId })];
+    notifiers.push(createTelegramNotifier({ botToken: telegram.botToken, chatId: telegram.chatId }));
   }
-  return [];
+
+  const desktop = config?.desktopNotifications;
+  if (desktop?.enabled) {
+    const notifier = createDesktopNotifier({ timeoutSeconds: desktop.timeoutSeconds });
+    if (notifier) notifiers.push(notifier);
+    else desktopSkipped = true;
+  }
+
+  return { notifiers, desktopSkipped };
 }
 
 async function notifyStory(sub: Subscription, story: Story, notifiers: Notifier[]): Promise<boolean> {
@@ -94,9 +112,12 @@ async function processSubscription(
 
 /** hn watch --once: one-shot pass over all subscriptions. Returns the process exit code. */
 export async function runWatch(options: WatchOptions): Promise<number> {
-  const notifiers = buildNotifiers();
+  const { notifiers, desktopSkipped } = buildNotifiers();
   if (notifiers.length === 0) {
-    console.error('no notifier configured: hn config set telegram.enabled true (and botToken/chatId)');
+    if (desktopSkipped) return 0;
+    console.error(
+      'no notifier configured: hn config set telegram.enabled true (and botToken/chatId) or desktopNotifications.enabled true',
+    );
     return 2;
   }
 
