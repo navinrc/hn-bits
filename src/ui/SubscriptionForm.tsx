@@ -5,14 +5,15 @@ import type { Story } from '../api/firebase.js';
 import { addSubscription, listSubscriptions, updateSubscription, type Subscription } from '../db/subscriptions.js';
 import { truncateTitle } from '../lib/format.js';
 import { hasScheduledJob, installScheduledJob } from '../lib/schedule.js';
+import { thresholdLabel } from '../lib/subscriptionLabel.js';
 import { useTheme } from './theme.js';
 
 const PREVIEW_DEBOUNCE_MS = 300;
 const PREVIEW_WINDOW_DAYS = 7;
 const PREVIEW_LIMIT = 5;
 
-type Field = 'name' | 'query' | 'minPoints';
-const FIELD_ORDER: Field[] = ['name', 'query', 'minPoints'];
+type Field = 'name' | 'query' | 'minPoints' | 'minComments';
+const FIELD_ORDER: Field[] = ['name', 'query', 'minPoints', 'minComments'];
 
 interface SubscriptionFormProps {
   mode: 'add' | 'edit';
@@ -38,6 +39,7 @@ export function SubscriptionForm({
   const [name, setName] = useState(subscription?.name ?? '');
   const [query, setQuery] = useState(subscription?.query ?? prefillQuery ?? '');
   const [minPoints, setMinPoints] = useState(String(subscription?.minPoints ?? 0));
+  const [minComments, setMinComments] = useState(String(subscription?.minComments ?? 0));
   const [field, setField] = useState<Field>('name');
   const [error, setError] = useState('');
   const [preview, setPreview] = useState<Story[]>([]);
@@ -56,13 +58,19 @@ export function SubscriptionForm({
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, minPoints]);
+  }, [query, minPoints, minComments]);
 
   async function loadPreview(): Promise<void> {
     const myToken = ++previewToken.current;
     const points = Number(minPoints) || 0;
+    const comments = Number(minComments) || 0;
     try {
-      const results = await searchRecent(query, { createdAfter: windowStart(), minPoints: points, hitsPerPage: PREVIEW_LIMIT });
+      const results = await searchRecent(query, {
+        createdAfter: windowStart(),
+        minPoints: points,
+        minComments: comments,
+        hitsPerPage: PREVIEW_LIMIT,
+      });
       if (myToken === previewToken.current) setPreview(results);
     } catch {
       if (myToken === previewToken.current) setPreview([]);
@@ -75,9 +83,16 @@ export function SubscriptionForm({
     if (!trimmedName) return setError('name is required');
     if (!trimmedQuery) return setError('query is required');
     const points = Number(minPoints) || 0;
+    const comments = Number(minComments) || 0;
     try {
-      if (mode === 'add') addSubscription(trimmedName, trimmedQuery, points);
-      else updateSubscription(subscription!.id, { name: trimmedName, query: trimmedQuery, minPoints: points });
+      if (mode === 'add') addSubscription(trimmedName, trimmedQuery, points, comments);
+      else
+        updateSubscription(subscription!.id, {
+          name: trimmedName,
+          query: trimmedQuery,
+          minPoints: points,
+          minComments: comments,
+        });
       if (mode === 'add' && listSubscriptions().length === 1 && !hasScheduledJob()) {
         setScheduleConfirm(true);
         return;
@@ -116,6 +131,7 @@ export function SubscriptionForm({
       if (field === 'name') setName((v) => v.slice(0, -1));
       if (field === 'query') setQuery((v) => v.slice(0, -1));
       if (field === 'minPoints') setMinPoints((v) => v.slice(0, -1));
+      if (field === 'minComments') setMinComments((v) => v.slice(0, -1));
       return;
     }
     if (input && !key.ctrl && !key.meta) {
@@ -124,13 +140,16 @@ export function SubscriptionForm({
       if (field === 'minPoints' && /^\d+$/.test(input)) {
         setMinPoints((v) => (v === '0' ? input : v + input));
       }
+      if (field === 'minComments' && /^\d+$/.test(input)) {
+        setMinComments((v) => (v === '0' ? input : v + input));
+      }
     }
   }
 
   useInput(handleInput);
 
   const cursor = (f: Field): string => (field === f ? '▏' : '');
-  const previewLabel = Number(minPoints) > 0 ? `≥${minPoints} pts` : 'any points';
+  const previewLabel = thresholdLabel(Number(minPoints) || 0, Number(minComments) || 0);
 
   return (
     <Box flexDirection="column">
@@ -147,6 +166,10 @@ export function SubscriptionForm({
       <Text>
         min points:  {minPoints}
         {cursor('minPoints')}
+      </Text>
+      <Text>
+        min comments:  {minComments}
+        {cursor('minComments')}
       </Text>
       <Text> </Text>
       {query.trim() && (
