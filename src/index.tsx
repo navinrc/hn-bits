@@ -167,4 +167,19 @@ sub
     console.log(`removed '${name}'`);
   });
 
+interface WatchCliOptions {
+  once?: boolean;
+  dryRun?: boolean;
+}
+
+program
+  .command('watch')
+  .description('Check subscriptions for new matches and notify (one-shot; cron owns scheduling)')
+  .requiredOption('--once', 'run a single pass and exit (required; guards against future daemon semantics)')
+  .option('--dry-run', 'print would-notify matches without sending or writing seen_items')
+  .action(async (options: WatchCliOptions) => {
+    const { runWatch } = await import('./watch.js');
+    process.exit(await runWatch({ dryRun: Boolean(options.dryRun) }));
+  });
+
 program.parse();
