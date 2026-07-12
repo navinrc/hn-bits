@@ -1,6 +1,24 @@
 # hn-bits
 
-Terminal-first Hacker News client. Fullscreen TUI built with TypeScript + Ink (React for the terminal), backed by the HN Firebase and Algolia APIs. No database. Optional local-AI features (summaries + Ask AI) read a config file; everything else is fully stateless.
+A fullscreen terminal client for Hacker News, built with TypeScript + Ink. Optional local AI summaries via Ollama, no database, no cloud required.
+
+![npm version](https://img.shields.io/npm/v/hn-bits)
+[![CI](https://img.shields.io/github/actions/workflow/status/navinrc/hn-bits/release.yml)](https://github.com/navinrc/hn-bits/actions)
+[![Release](https://img.shields.io/github/v/release/navinrc/hn-bits)](https://github.com/navinrc/hn-bits/releases)
+[![npm downloads](https://img.shields.io/npm/dt/hn-bits)](https://www.npmjs.com/package/hn-bits)
+![License](https://img.shields.io/badge/license-MIT-green)
+
+![Streaming article summary, then a multi-turn Ask AI conversation grounded in the same story](docs/ai-demo.gif)
+
+## Features
+
+- Fullscreen TUI: top/new/best/ask/show feeds, vim-style navigation
+- Threaded comments view with fold/collapse
+- Search across stories
+- 6 built-in themes (`hn`, `mocha`, `dracula`, `tokyo`, `nord`, `gruvbox`)
+- Local AI article/thread summaries via Ollama, no cloud calls
+- Ask AI: multi-turn Q&A grounded in the current story
+- Stateless: no database, config file only for optional AI settings
 
 ## Install
 
@@ -34,9 +52,7 @@ Press `?` from any view for the full keybinding help overlay.
 
 ### Local AI (summaries + Ask AI)
 
-Article/thread summaries (`s`) and interactive Q&A (`a`) run against a local [Ollama](https://ollama.com) instance — no cloud calls, no API keys. Optional: the app works fully without it, `s`/`a` just show a setup hint until configured.
-
-![Streaming article summary, then a multi-turn Ask AI conversation grounded in the same story](docs/ai-demo.gif)
+Article/thread summaries (`s`) and interactive Q&A (`a`) run against a local [Ollama](https://ollama.com) instance, no cloud calls, no API keys. Optional: the app works fully without it, `s`/`a` just show a setup hint until configured.
 
 **Prerequisites**
 
@@ -46,7 +62,7 @@ ollama serve           # if not already running as a service
 ollama pull llama3.2    # or any other chat-capable model
 ```
 
-**Setup** — one-time:
+**Setup** (one-time):
 
 ```bash
 hn config set ollama.host http://localhost:11434
@@ -57,7 +73,7 @@ Missing fields fall back to the defaults above; invalid JSON degrades to "AI dis
 
 ### Configuration
 
-`hn config` reads/writes `~/.config/hn-bits/config.json` (override the path with `$HN_BITS_CONFIG`) — no need to hand-edit JSON:
+`hn config` reads/writes `~/.config/hn-bits/config.json` (override the path with `$HN_BITS_CONFIG`), no need to hand-edit JSON:
 
 ```bash
 hn config list                        # every known key + current value
@@ -66,11 +82,11 @@ hn config set ollama.model llama3.2   # validates + writes
 hn config unset ollama.model          # removes a key
 ```
 
-Sensitive values (e.g. a future Telegram bot token) print masked in `list` but raw from `get`, so scripts can still consume them. File format is plain JSON — hand-editing still works if you prefer it.
+Sensitive values (e.g. a future Telegram bot token) print masked in `list` but raw from `get`, so scripts can still consume them. File format is plain JSON; hand-editing still works if you prefer it.
 
 ### Themes
 
-`hn`, `mocha`, `dracula`, `tokyo`, `nord`, `gruvbox` (default: `hn`, HN-orange). Pick with `--theme <name>` or the `HN_THEME` env var — not persisted (no config file yet).
+`hn`, `mocha`, `dracula`, `tokyo`, `nord`, `gruvbox` (default: `hn`, HN-orange). Pick with `--theme <name>` or the `HN_THEME` env var; not persisted (no config file yet).
 
 ### Keybindings
 
@@ -126,7 +142,7 @@ npm run build  # tsc
 
 - TypeScript (strict, ESM) + Ink (React for terminals)
 - Commander CLI, native `fetch`
-- HN Firebase + Algolia APIs — no backend, no database
+- HN Firebase + Algolia APIs, no backend, no database
 - Vitest
 
 ## Specs
