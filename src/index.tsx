@@ -44,6 +44,15 @@ program
   });
 
 program
+  .command('subs')
+  .description('Open the TUI on the Subs tab')
+  .action(async () => {
+    applyTheme(program.opts<GlobalOptions>());
+    const { App } = await import('./ui/App.js');
+    render(<App initialView="subs" />, { alternateScreen });
+  });
+
+program
   .command('theme')
   .description('Show the active color theme and available palettes')
   .action(async () => {

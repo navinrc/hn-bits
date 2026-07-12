@@ -19,6 +19,7 @@ const TABS: Tab[] = [
   { id: 'ask', label: 'Ask' },
   { id: 'show', label: 'Show' },
   { id: 'saved', label: 'Saved' },
+  { id: 'subs', label: 'Subs' },
 ];
 
 const BRAND = 'Hacker News';

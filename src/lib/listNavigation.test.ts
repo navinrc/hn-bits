@@ -35,21 +35,23 @@ describe('nextTab', () => {
     expect(nextTab('best')).toBe('ask');
     expect(nextTab('ask')).toBe('show');
     expect(nextTab('show')).toBe('saved');
+    expect(nextTab('saved')).toBe('subs');
   });
 
   it('wraps from the last tab to the first', () => {
-    expect(nextTab('saved')).toBe('top');
+    expect(nextTab('subs')).toBe('top');
   });
 });
 
 describe('previousTab', () => {
   it('moves back through the tab order', () => {
+    expect(previousTab('subs')).toBe('saved');
     expect(previousTab('saved')).toBe('show');
     expect(previousTab('show')).toBe('ask');
     expect(previousTab('ask')).toBe('best');
   });
 
   it('wraps from the first tab to the last', () => {
-    expect(previousTab('top')).toBe('saved');
+    expect(previousTab('top')).toBe('subs');
   });
 });

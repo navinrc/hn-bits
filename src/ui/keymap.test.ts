@@ -7,7 +7,7 @@ const HANDLED = {
   global: ['q', '?'],
   list: ['j/k', '←/→', 't/n/b', 'gg/G', 'enter', 'o', 'r', '/', 's', 'a', 'B'],
   comments: ['j/k', 'space', 'C/E', 'gg/G', 'o', 'r', 's', 'a', 'B', 'esc'],
-  searchResults: ['j/k', 'gg/G', 'enter', 'o', '/', 's', 'a', 'B', 'esc'],
+  searchResults: ['j/k', 'gg/G', 'enter', 'o', '/', 's', 'a', 'B', 'S', 'esc'],
 };
 
 function keys(bindings: readonly { key: string }[]): string[] {

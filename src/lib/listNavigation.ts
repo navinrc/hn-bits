@@ -1,7 +1,7 @@
 import type { Feed } from '../api/firebase.js';
 
 /** Every tab reachable via ←/→, beyond the fetchable Feed values. */
-export type TabId = Feed | 'saved';
+export type TabId = Feed | 'saved' | 'subs';
 
 export function clampSelection(current: number, delta: number, length: number): number {
   if (length === 0) return 0;
@@ -14,7 +14,7 @@ export function mapFeedKey(key: string): Feed | undefined {
   return FEED_KEYS[key];
 }
 
-const TAB_ORDER: TabId[] = ['top', 'new', 'best', 'ask', 'show', 'saved'];
+const TAB_ORDER: TabId[] = ['top', 'new', 'best', 'ask', 'show', 'saved', 'subs'];
 
 export function nextTab(current: TabId): TabId {
   const index = TAB_ORDER.indexOf(current);

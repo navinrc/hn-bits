@@ -2,34 +2,52 @@ import { useState, type JSX, type ReactNode } from 'react';
 import { useApp, useInput } from 'ink';
 import type { CommentNode } from '../api/algolia.js';
 import type { Feed, Story } from '../api/firebase.js';
+import type { Subscription } from '../db/subscriptions.js';
 import { loadConfig, type Config } from '../lib/config.js';
 import { nextTab, previousTab, type TabId } from '../lib/listNavigation.js';
 import { AskAI } from './AskAI.js';
 import { Comments } from './Comments.js';
 import { HelpOverlay } from './HelpOverlay.js';
-import { COMMENTS_KEYS, LIST_KEYS, SAVED_KEYS, SEARCH_RESULTS_KEYS, footerHint, type KeyBinding } from './keymap.js';
+import {
+  COMMENTS_KEYS,
+  LIST_KEYS,
+  SAVED_KEYS,
+  SEARCH_RESULTS_KEYS,
+  SUB_MATCHES_KEYS,
+  SUBS_KEYS,
+  footerHint,
+  type KeyBinding,
+} from './keymap.js';
 import { Body, Footer, Header, Screen } from './Layout.js';
 import { SavedList } from './SavedList.js';
 import { SearchInput } from './SearchInput.js';
 import { SearchResults } from './SearchResults.js';
 import { StoryList } from './StoryList.js';
+import { SubscriptionForm } from './SubscriptionForm.js';
+import { SubscriptionMatches } from './SubscriptionMatches.js';
+import { SubscriptionsView } from './SubscriptionsView.js';
 import { TabBar } from './TabBar.js';
 
 type ListLikeView =
   | { name: 'list' }
   | { name: 'search'; query: string; from: 'tui' | 'cli' }
-  | { name: 'saved' };
-type CommentsView = { name: 'comments'; story: Story; returnTo: ListLikeView };
-type NonAskView = ListLikeView | CommentsView;
+  | { name: 'saved' }
+  | { name: 'subs' };
+type SubMatchesView = { name: 'sub-matches'; subscription: Subscription };
+type StoryOriginView = ListLikeView | SubMatchesView;
+type CommentsView = { name: 'comments'; story: Story; returnTo: StoryOriginView };
+type NonAskView = StoryOriginView | CommentsView;
+type SubFormView = { name: 'sub-form'; mode: 'add' | 'edit'; subscription?: Subscription; prefillQuery?: string; returnTo: View };
 
 type View =
   | NonAskView
+  | SubFormView
   | { name: 'ask'; story: Story; comments: CommentNode[] | null; returnTo: NonAskView }
   | { name: 'search-input'; from: 'tui' | 'cli' };
 
 interface AppProps {
   initialQuery?: string;
-  initialView?: 'saved';
+  initialView?: 'saved' | 'subs';
 }
 
 export function App({ initialQuery, initialView }: AppProps): JSX.Element {
@@ -39,7 +57,9 @@ export function App({ initialQuery, initialView }: AppProps): JSX.Element {
       ? { name: 'search', query: initialQuery, from: 'cli' }
       : initialView === 'saved'
         ? { name: 'saved' }
-        : { name: 'list' },
+        : initialView === 'subs'
+          ? { name: 'subs' }
+          : { name: 'list' },
   );
   const [helpOpen, setHelpOpen] = useState(false);
   const [config] = useState(loadConfig);
@@ -47,7 +67,7 @@ export function App({ initialQuery, initialView }: AppProps): JSX.Element {
 
   useInput((input) => {
     if (helpOpen) return setHelpOpen(false);
-    if (view.name === 'search-input' || view.name === 'ask') return;
+    if (view.name === 'search-input' || view.name === 'ask' || view.name === 'sub-form') return;
     if (input === 'q') return exit();
     if (input === '?') return setHelpOpen(true);
   });
@@ -58,14 +78,14 @@ export function App({ initialQuery, initialView }: AppProps): JSX.Element {
   }
 
   function changeTab(direction: 1 | -1): void {
-    const current: TabId = view.name === 'saved' ? 'saved' : feed;
-    const next = direction === 1 ? nextTab(current) : previousTab(current);
+    const next = direction === 1 ? nextTab(activeTab) : previousTab(activeTab);
     if (next === 'saved') return setView({ name: 'saved' });
+    if (next === 'subs') return setView({ name: 'subs' });
     changeFeed(next);
   }
 
+  const activeTab: TabId = view.name === 'saved' || view.name === 'subs' ? view.name : feed;
   const ctx: ViewContext = { feed, config, setFeed: changeFeed, setTab: changeTab, setView, exit };
-  const activeTab: TabId = view.name === 'saved' ? 'saved' : feed;
 
   return (
     <Screen>
@@ -90,6 +110,9 @@ interface ViewContext {
 function renderBody(view: View, ctx: ViewContext): JSX.Element | null {
   if (view.name === 'list') return renderList(ctx);
   if (view.name === 'saved') return renderSaved(ctx);
+  if (view.name === 'subs') return renderSubs(ctx);
+  if (view.name === 'sub-matches') return renderSubMatches(view, ctx);
+  if (view.name === 'sub-form') return renderSubForm(view, ctx);
   if (view.name === 'search') return renderSearch(view, ctx);
   if (view.name === 'search-input') return null;
   if (view.name === 'ask') return renderAskAI(view, ctx);
@@ -105,9 +128,11 @@ function renderFooter(view: View, ctx: ViewContext): ReactNode {
       />
     );
   }
-  if (view.name === 'ask') return null;
+  if (view.name === 'ask' || view.name === 'sub-form') return null;
   if (view.name === 'list') return footerHint(LIST_KEYS);
   if (view.name === 'saved') return footerHint(SAVED_KEYS);
+  if (view.name === 'subs') return footerHint(SUBS_KEYS);
+  if (view.name === 'sub-matches') return footerHint(SUB_MATCHES_KEYS);
   if (view.name === 'comments') return footerHint(COMMENTS_KEYS);
   return footerHint(SEARCH_RESULTS_KEYS);
 }
@@ -116,6 +141,8 @@ function helpFor(view: View): { title: string; keys: readonly KeyBinding[] } {
   if (view.name === 'comments') return { title: 'comments', keys: COMMENTS_KEYS };
   if (view.name === 'search') return { title: 'search results', keys: SEARCH_RESULTS_KEYS };
   if (view.name === 'saved') return { title: 'saved', keys: SAVED_KEYS };
+  if (view.name === 'subs') return { title: 'subs', keys: SUBS_KEYS };
+  if (view.name === 'sub-matches') return { title: 'sub matches', keys: SUB_MATCHES_KEYS };
   return { title: 'story list', keys: LIST_KEYS };
 }
 
@@ -146,6 +173,43 @@ function renderSaved({ config, setFeed, setTab, setView }: ViewContext): JSX.Ele
   );
 }
 
+function renderSubs({ setFeed, setTab, setView }: ViewContext): JSX.Element {
+  return (
+    <SubscriptionsView
+      onSelectMatches={(subscription) => setView({ name: 'sub-matches', subscription })}
+      onAdd={() => setView({ name: 'sub-form', mode: 'add', returnTo: { name: 'subs' } })}
+      onEdit={(subscription) => setView({ name: 'sub-form', mode: 'edit', subscription, returnTo: { name: 'subs' } })}
+      onFeedChange={setFeed}
+      onTabChange={setTab}
+    />
+  );
+}
+
+function renderSubMatches(view: View & { name: 'sub-matches' }, { config, setView }: ViewContext): JSX.Element {
+  const returnTo: StoryOriginView = { name: 'sub-matches', subscription: view.subscription };
+  return (
+    <SubscriptionMatches
+      subscription={view.subscription}
+      config={config}
+      onSelectStory={(story) => setView({ name: 'comments', story, returnTo })}
+      onBack={() => setView({ name: 'subs' })}
+      onAskAI={(story) => setView({ name: 'ask', story, comments: null, returnTo })}
+    />
+  );
+}
+
+function renderSubForm(view: View & { name: 'sub-form' }, { setView }: ViewContext): JSX.Element {
+  return (
+    <SubscriptionForm
+      mode={view.mode}
+      subscription={view.subscription}
+      prefillQuery={view.prefillQuery}
+      onSave={() => setView(view.returnTo)}
+      onCancel={() => setView(view.returnTo)}
+    />
+  );
+}
+
 function renderSearch(view: View & { name: 'search' }, { config, setView, exit }: ViewContext): JSX.Element {
   const returnTo: ListLikeView = { name: 'search', query: view.query, from: view.from };
   return (
@@ -156,6 +220,7 @@ function renderSearch(view: View & { name: 'search' }, { config, setView, exit }
       onExit={() => (view.from === 'tui' ? setView({ name: 'list' }) : exit())}
       onSearchAgain={() => setView({ name: 'search-input', from: view.from })}
       onAskAI={(story) => setView({ name: 'ask', story, comments: null, returnTo })}
+      onSubscribe={() => setView({ name: 'sub-form', mode: 'add', prefillQuery: view.query, returnTo })}
     />
   );
 }

@@ -40,6 +40,7 @@ function renderResults() {
   const onExit = vi.fn();
   const onSearchAgain = vi.fn();
   const onAskAI = vi.fn();
+  const onSubscribe = vi.fn();
   const instance = render(
     <SearchResults
       query="rust"
@@ -48,11 +49,12 @@ function renderResults() {
       onExit={onExit}
       onSearchAgain={onSearchAgain}
       onAskAI={onAskAI}
+      onSubscribe={onSubscribe}
     />,
     80,
     14,
   );
-  return { instance, onSelectStory, onExit, onSearchAgain, onAskAI };
+  return { instance, onSelectStory, onExit, onSearchAgain, onAskAI, onSubscribe };
 }
 
 describe('SearchResults', () => {
@@ -101,6 +103,17 @@ describe('SearchResults', () => {
     await instance.waitUntilRenderFlush();
 
     expect(onAskAI).toHaveBeenCalledWith(expect.objectContaining({ id: 1 }));
+    instance.unmount();
+  });
+
+  it('calls onSubscribe on S', async () => {
+    const { instance, onSubscribe } = renderResults();
+    await instance.waitUntilRenderFlush();
+
+    instance.stdin.writeInput('S');
+    await instance.waitUntilRenderFlush();
+
+    expect(onSubscribe).toHaveBeenCalled();
     instance.unmount();
   });
 });
