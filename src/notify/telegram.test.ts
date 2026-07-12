@@ -23,7 +23,7 @@ const story: Story = {
   time: 0,
 };
 
-const match: Match = { subscription, story };
+const match: Match = { subscriptions: [subscription], story };
 const config = { botToken: 'TOKEN', chatId: 'CHAT' };
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -53,7 +53,7 @@ describe('createTelegramNotifier', () => {
   it('includes the article link, HN discussion link, and escapes HTML', async () => {
     vi.mocked(fetch).mockResolvedValue(jsonResponse({ ok: true }));
     const xssStory: Story = { ...story, title: 'A <script> & "quotes"', by: '<bob>' };
-    await createTelegramNotifier(config).send({ subscription, story: xssStory });
+    await createTelegramNotifier(config).send({ subscriptions: [subscription], story: xssStory });
 
     const body = JSON.parse((vi.mocked(fetch).mock.calls[0]![1] as RequestInit).body as string);
     expect(body.text).toContain('🔔 <b>postgres</b>');
@@ -62,10 +62,19 @@ describe('createTelegramNotifier', () => {
     expect(body.text).toContain('<a href="https://news.ycombinator.com/item?id=41211001">HN discussion</a>');
   });
 
+  it('joins multiple subscription names and escapes each', async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonResponse({ ok: true }));
+    const subB: Subscription = { ...subscription, id: 2, name: 'a < b' };
+    await createTelegramNotifier(config).send({ subscriptions: [subscription, subB], story });
+
+    const body = JSON.parse((vi.mocked(fetch).mock.calls[0]![1] as RequestInit).body as string);
+    expect(body.text).toContain('🔔 <b>postgres, a &lt; b</b>');
+  });
+
   it('omits the story link and HN discussion line for text posts', async () => {
     vi.mocked(fetch).mockResolvedValue(jsonResponse({ ok: true }));
     const textStory: Story = { ...story, url: undefined };
-    await createTelegramNotifier(config).send({ subscription, story: textStory });
+    await createTelegramNotifier(config).send({ subscriptions: [subscription], story: textStory });
 
     const body = JSON.parse((vi.mocked(fetch).mock.calls[0]![1] as RequestInit).body as string);
     expect(body.text).toContain('<a href="https://news.ycombinator.com/item?id=41211001">Postgres 18 released</a>');

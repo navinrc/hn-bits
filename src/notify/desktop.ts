@@ -31,14 +31,15 @@ export function findAlerter(): string | null {
   return null;
 }
 
-function wrapperArguments({ subscription, story }: Match, timeoutSeconds: number, alerterPath: string): string[] {
+function wrapperArguments({ subscriptions, story }: Match, timeoutSeconds: number, alerterPath: string): string[] {
+  const names = subscriptions.map((s) => s.name).join(', ');
   return [
     'sh',
-    `🔔 ${subscription.name}`,
+    `🔔 ${names}`,
     `${story.score} pts · ${story.descendants} comments`,
     story.title,
     String(timeoutSeconds),
-    `hn-${subscription.id}-${story.id}`,
+    `hn-${story.id}`,
     story.url ?? hnItemUrl(story.id),
     alerterPath,
   ];

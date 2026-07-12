@@ -49,65 +49,94 @@ function buildNotifiers(): BuiltNotifiers {
   return { notifiers, desktopSkipped };
 }
 
-async function notifyStory(sub: Subscription, story: Story, notifiers: Notifier[]): Promise<boolean> {
+/** Query plus unseen filter for one subscription. null on query failure. */
+async function fetchMatches(sub: Subscription, now: number): Promise<Story[] | null> {
   try {
-    for (const notifier of notifiers) await notifier.send({ subscription: sub, story });
-    return true;
-  } catch (err) {
-    log(`${sub.name}: notify failed for ${story.id} - ${(err as Error).message}`);
-    return false;
-  }
-}
-
-interface SubscriptionResult {
-  notified: number;
-  hadFailure: boolean;
-}
-
-async function processSubscription(
-  sub: Subscription,
-  notifiers: Notifier[],
-  now: number,
-  dryRun: boolean,
-): Promise<SubscriptionResult> {
-  let stories: Story[];
-  try {
-    stories = await searchRecent(sub.query, {
+    const stories = await searchRecent(sub.query, {
       createdAfter: windowStart(sub.lastRunAt, now),
       minPoints: sub.minPoints,
       minComments: sub.minComments,
     });
+    return stories.filter((story) => !isSeen(story.id, sub.id));
   } catch (err) {
     log(`${sub.name}: query failed - ${(err as Error).message}`);
-    return { notified: 0, hadFailure: true };
+    return null;
   }
+}
 
-  const matches = stories.filter((story) => !isSeen(story.id, sub.id)).sort((a, b) => a.time - b.time);
-  if (matches.length === 0) {
-    log(`${sub.name}: no new matches`);
-    if (!dryRun) touchLastRun(sub.id, now);
-    return { notified: 0, hadFailure: false };
-  }
+interface PendingMatch {
+  story: Story;
+  subscriptions: Subscription[];
+}
 
-  log(`${sub.name}: ${matches.length} new matches`);
-  let notified = 0;
-  let hadFailure = false;
-  for (const story of matches) {
-    if (dryRun) {
-      log(`would notify: [${sub.name}] ${story.title} (${story.score} pts)`);
+interface CollectResult {
+  pending: Map<number, PendingMatch>;
+  fetchedSubs: Subscription[];
+  failedSubs: number;
+}
+
+/** Phase A: fetch every subscription, merging stories matched by more than one. */
+async function collectPending(subs: Subscription[], now: number): Promise<CollectResult> {
+  const pending = new Map<number, PendingMatch>();
+  const fetchedSubs: Subscription[] = [];
+  let failedSubs = 0;
+
+  for (const sub of subs) {
+    const matches = await fetchMatches(sub, now);
+    if (matches === null) {
+      failedSubs++;
       continue;
     }
-    const sent = await notifyStory(sub, story, notifiers);
+    fetchedSubs.push(sub);
+    for (const story of matches) {
+      const entry = pending.get(story.id);
+      if (entry) entry.subscriptions.push(sub);
+      else pending.set(story.id, { story, subscriptions: [sub] });
+    }
+  }
+
+  return { pending, fetchedSubs, failedSubs };
+}
+
+async function notifyStory(subscriptions: Subscription[], story: Story, notifiers: Notifier[]): Promise<boolean> {
+  const names = subscriptions.map((s) => s.name).join(', ');
+  try {
+    for (const notifier of notifiers) await notifier.send({ subscriptions, story });
+    return true;
+  } catch (err) {
+    log(`${names}: notify failed for ${story.id} - ${(err as Error).message}`);
+    return false;
+  }
+}
+
+interface DispatchResult {
+  totalNotified: number;
+  hadFailure: boolean;
+}
+
+/** Phase B: one notify per story, oldest first. */
+async function dispatchPending(pending: Map<number, PendingMatch>, notifiers: Notifier[], now: number, dryRun: boolean): Promise<DispatchResult> {
+  const ordered = [...pending.values()].sort((a, b) => a.story.time - b.story.time);
+  let totalNotified = 0;
+  let hadFailure = false;
+
+  for (const { story, subscriptions } of ordered) {
+    const names = subscriptions.map((s) => s.name).join(', ');
+    if (dryRun) {
+      log(`would notify: [${names}] ${story.title} (${story.score} pts)`);
+      continue;
+    }
+    const sent = await notifyStory(subscriptions, story, notifiers);
     if (!sent) {
       hadFailure = true;
       continue;
     }
-    markSeen(story.id, sub.id, now);
-    log(`${sub.name}: notified ${story.id} "${story.title}" (${story.score} pts)`);
-    notified++;
+    for (const sub of subscriptions) markSeen(story.id, sub.id, now);
+    log(`${names}: notified ${story.id} "${story.title}" (${story.score} pts)`);
+    totalNotified++;
   }
-  if (!dryRun) touchLastRun(sub.id, now);
-  return { notified, hadFailure };
+
+  return { totalNotified, hadFailure };
 }
 
 /** hn watch --once: one-shot pass over all subscriptions. Returns the process exit code. */
@@ -129,15 +158,13 @@ export async function runWatch(options: WatchOptions): Promise<number> {
 
   log(`watch: ${subs.length} subscriptions`);
   const now = Math.floor(Date.now() / 1000);
-  let totalNotified = 0;
-  let failedSubs = 0;
 
-  for (const sub of subs) {
-    const result = await processSubscription(sub, notifiers, now, options.dryRun);
-    totalNotified += result.notified;
-    if (result.hadFailure) failedSubs++;
-  }
+  const { pending, fetchedSubs, failedSubs } = await collectPending(subs, now);
+  if (pending.size === 0) log('no new matches');
+  const { totalNotified, hadFailure } = await dispatchPending(pending, notifiers, now, options.dryRun);
+
+  if (!options.dryRun) for (const sub of fetchedSubs) touchLastRun(sub.id, now);
 
   log(`done: ${totalNotified} notified, ${failedSubs} failed`);
-  return failedSubs > 0 ? 1 : 0;
+  return failedSubs > 0 || hadFailure ? 1 : 0;
 }
