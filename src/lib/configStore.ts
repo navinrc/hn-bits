@@ -33,7 +33,7 @@ function resolveValue(key: string): string | number | boolean | undefined {
     const ollama = merged?.ollama ?? DEFAULT_OLLAMA_CONFIG;
     return (ollama as Record<string, unknown>)[field] as string;
   }
-  const sectionValue = merged?.[section as 'telegram' | 'desktopNotifications'];
+  const sectionValue = merged?.[section as 'telegram' | 'desktopNotifications' | 'ui'];
   return (sectionValue as Record<string, unknown> | undefined)?.[field] as
     | string
     | number

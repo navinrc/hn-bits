@@ -56,11 +56,20 @@ program
   .command('theme')
   .description('Show the active color theme and available palettes')
   .action(async () => {
-    const { paletteNames, resolvePaletteName } = await import('./ui/theme.js');
-    const activeName = resolvePaletteName(program.opts<GlobalOptions>().theme);
-    console.log(`Active theme: ${activeName}`);
-    console.log(`Available: ${paletteNames().join(', ')}`);
-    console.log('Set with `hn --theme <name>` or the HN_THEME environment variable.');
+    const { paletteNames, resolvePaletteName, resolvePaletteSource } = await import('./ui/theme.js');
+    const flag = program.opts<GlobalOptions>().theme;
+    const activeName = resolvePaletteName(flag);
+    const source = resolvePaletteSource(flag);
+    const sourceLabel = source === 'default' ? '(default)' : `(from ${source})`;
+    console.log(`Active theme: ${activeName} ${sourceLabel}`);
+    console.log(
+      `Available: ${paletteNames()
+        .map((n) => (n === 'hn' ? `${n} (default)` : n))
+        .join(', ')}`,
+    );
+    console.log(
+      'Set with `hn --theme <name>`, the HN_THEME environment variable, or `hn config set ui.theme <name>`.',
+    );
   });
 
 const config = program.command('config').description('Get or set hn-bits config values');

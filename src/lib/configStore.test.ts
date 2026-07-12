@@ -56,6 +56,17 @@ describe('setConfigValue', () => {
       'expected a number',
     );
   });
+
+  it('sets a valid theme name', () => {
+    setConfigValue('ui.theme', 'dracula');
+    expect(JSON.parse(readFileSync(path, 'utf-8'))).toEqual({ ui: { theme: 'dracula' } });
+  });
+
+  it('throws on an unknown theme name', () => {
+    expect(() => setConfigValue('ui.theme', 'not-a-theme')).toThrow(
+      "unknown theme 'not-a-theme' (valid: hn, mocha, dracula, tokyo, nord, gruvbox)",
+    );
+  });
 });
 
 describe('getConfigValue', () => {
@@ -108,5 +119,11 @@ describe('listConfigEntries', () => {
   it('reports ollama defaults', () => {
     const entry = listConfigEntries().find((e) => e.key === 'ollama.model');
     expect(entry?.value).toBe('llama3.2');
+  });
+
+  it('reports the set theme unmasked', () => {
+    setConfigValue('ui.theme', 'nord');
+    const entry = listConfigEntries().find((e) => e.key === 'ui.theme');
+    expect(entry?.value).toBe('nord');
   });
 });

@@ -1,9 +1,26 @@
-import { afterEach, describe, expect, it } from 'vitest';
-import { paletteNames, resolvePaletteName, resolveTheme } from './theme.js';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { paletteNames, resolvePaletteName, resolvePaletteSource, resolveTheme } from './theme.js';
+
+let dir: string;
+
+beforeEach(() => {
+  dir = mkdtempSync(join(tmpdir(), 'hn-bits-theme-'));
+});
 
 afterEach(() => {
   delete process.env['HN_THEME'];
+  delete process.env.HN_BITS_CONFIG;
+  rmSync(dir, { recursive: true, force: true });
 });
+
+function writeThemeConfig(name: string): void {
+  const path = join(dir, 'config.json');
+  writeFileSync(path, JSON.stringify({ ui: { theme: name } }));
+  process.env.HN_BITS_CONFIG = path;
+}
 
 describe('resolvePaletteName', () => {
   it('defaults to hn', () => {
@@ -22,6 +39,47 @@ describe('resolvePaletteName', () => {
 
   it('falls back to hn for an unknown name', () => {
     expect(resolvePaletteName('not-a-theme')).toBe('hn');
+  });
+
+  it('falls back to the config value when no flag or env var is given', () => {
+    writeThemeConfig('gruvbox');
+    expect(resolvePaletteName()).toBe('gruvbox');
+  });
+
+  it('prefers the env var over the config value', () => {
+    writeThemeConfig('gruvbox');
+    process.env['HN_THEME'] = 'nord';
+    expect(resolvePaletteName()).toBe('nord');
+  });
+
+  it('prefers an explicit name over the config value', () => {
+    writeThemeConfig('gruvbox');
+    expect(resolvePaletteName('dracula')).toBe('dracula');
+  });
+});
+
+describe('resolvePaletteSource', () => {
+  it('is default when nothing is set', () => {
+    expect(resolvePaletteSource()).toBe('default');
+  });
+
+  it('is flag when an explicit name is given', () => {
+    expect(resolvePaletteSource('dracula')).toBe('flag');
+  });
+
+  it('is env when only the env var is set', () => {
+    process.env['HN_THEME'] = 'nord';
+    expect(resolvePaletteSource()).toBe('env');
+  });
+
+  it('is config when only the config value is set', () => {
+    writeThemeConfig('gruvbox');
+    expect(resolvePaletteSource()).toBe('config');
+  });
+
+  it('is default when the config value is invalid', () => {
+    writeThemeConfig('not-a-theme');
+    expect(resolvePaletteSource()).toBe('default');
   });
 });
 

@@ -77,6 +77,20 @@ describe('loadConfig', () => {
     expect(loadConfig()?.desktopNotifications).toBeUndefined();
   });
 
+  it('passes ui config through as-is when present', () => {
+    const path = join(dir, 'config.json');
+    writeFileSync(path, JSON.stringify({ ui: { theme: 'dracula' } }));
+    process.env.HN_BITS_CONFIG = path;
+    expect(loadConfig()?.ui).toEqual({ theme: 'dracula' });
+  });
+
+  it('leaves ui undefined when absent', () => {
+    const path = join(dir, 'config.json');
+    writeFileSync(path, JSON.stringify({}));
+    process.env.HN_BITS_CONFIG = path;
+    expect(loadConfig()?.ui).toBeUndefined();
+  });
+
   it('warns and treats invalid JSON as absent, never throws', () => {
     const path = join(dir, 'config.json');
     writeFileSync(path, '{ not json');

@@ -128,7 +128,7 @@ Sensitive values (e.g. `telegram.botToken`) print masked in `list` but raw from 
 
 ### Themes
 
-`hn`, `mocha`, `dracula`, `tokyo`, `nord`, `gruvbox` (default: `hn`, HN-orange). Pick with `--theme <name>` or the `HN_THEME` env var; not persisted (no config file yet).
+`hn`, `mocha`, `dracula`, `tokyo`, `nord`, `gruvbox` (default: `hn`, HN-orange). Pick with `--theme <name>`, the `HN_THEME` env var, or persist it with `hn config set ui.theme <name>`. Precedence: flag > env > config > default. `hn theme` shows the active theme and where it came from.
 
 ### Keybindings
 

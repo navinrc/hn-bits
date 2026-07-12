@@ -121,10 +121,21 @@ Subscriptions (CLI + subs tab TUI) + watcher + Telegram + SQLite + bookmarks.
 
 V3 is feature-complete against `specs/v3/`. Verified per-phase live via tmux (bookmarks: star display, flash timing, Saved tab CRUD; watcher: all three exit codes against real Algolia, `--dry-run`, `--once` enforcement; subs TUI: manager, add-with-preview cross-checked against a direct Algolia query, matches browsing, bookmark toggle, delete confirm, and the full search → `S` → save → back-to-search-results loop) plus `npm test` (261 tests) and `npm run build` after every phase.
 
+## V3.1 — Theme persistence (specs/v3.1/)
+
+New `ui.theme` config key, additive to V2.5's `hn config` CLI.
+
+| Phase | Status | Notes |
+|-------|--------|-------|
+| 1: `ui.theme` config key | done | `Config.ui?.theme` added (`lib/config.ts`, passed through as-is like `telegram`); `CONFIG_KEYS` gains `ui.theme` with a `validate` hook on `ConfigKeyDef` (`lib/configKeys.ts`) checked against `paletteNames()`, `unknown theme 'x' (valid: ...)` on a bad `set`; `configStore.ts`'s `resolveValue` generalized off its `'telegram' \| 'desktopNotifications'` union to include `'ui'`. `theme.ts`'s `resolvePaletteName` gains the config lookup between env and default (flag > `HN_THEME` env > `ui.theme` config > `hn` default), new `resolvePaletteSource()` reports which level won for `hn theme`'s status line (`(from flag/env/config)` / `(default)`); an invalid persisted value resolves to `hn` same as an invalid env var today. `hn theme` output and `hn config set/get ui.theme` verified live |
+
+V3.1 is feature-complete against `specs/v3.1/`.
+
 ## Known gaps / follow-ups
 
 - V1.6 phases 1–8 complete; V1.6 is feature-complete against `specs/v1.6/`.
 - V2 phases 1–4 complete; V2 is feature-complete against `specs/v2/`.
 - V2.5 phase 1 complete; V2.5 is feature-complete against `specs/v2.5/`.
 - V3 phases 1–6 complete; V3 is feature-complete against `specs/v3/`.
-- Next: the small slices V3.1 (theme config), V3.5 (desktop notify), V3.6 (Discord). None depend on each other and can ship in any order.
+- V3.1 phase 1 complete; V3.1 is feature-complete against `specs/v3.1/`.
+- Next: the small slices V3.5 (desktop notify), V3.6 (Discord). Independent, can ship in any order.

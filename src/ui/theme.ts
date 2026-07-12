@@ -1,3 +1,5 @@
+import { loadConfig } from '../lib/config.js';
+
 export interface ThemeColors {
   accent: string;
   title: string;
@@ -122,9 +124,27 @@ function isPaletteName(name: string): name is PaletteName {
   return name in palettes;
 }
 
+export type PaletteSource = 'flag' | 'env' | 'config' | 'default';
+
+/** First defined candidate across flag > HN_THEME env > ui.theme config, with where it came from. */
+function candidatePaletteName(name?: string): { raw?: string; source: PaletteSource } {
+  if (name !== undefined) return { raw: name, source: 'flag' };
+  const env = process.env['HN_THEME'];
+  if (env !== undefined) return { raw: env, source: 'env' };
+  const configured = loadConfig()?.ui?.theme;
+  if (configured !== undefined) return { raw: configured, source: 'config' };
+  return { source: 'default' };
+}
+
 export function resolvePaletteName(name?: string): PaletteName {
-  const candidate = name ?? process.env['HN_THEME'] ?? DEFAULT_PALETTE;
-  return isPaletteName(candidate) ? candidate : DEFAULT_PALETTE;
+  const { raw } = candidatePaletteName(name);
+  return raw !== undefined && isPaletteName(raw) ? raw : DEFAULT_PALETTE;
+}
+
+/** Where the active theme choice came from, for `hn theme`'s status line. */
+export function resolvePaletteSource(name?: string): PaletteSource {
+  const { raw, source } = candidatePaletteName(name);
+  return raw !== undefined && isPaletteName(raw) ? source : 'default';
 }
 
 export function resolveTheme(name?: string): Theme {
