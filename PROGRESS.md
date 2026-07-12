@@ -143,6 +143,16 @@ Change theme from inside a running session, no restart.
 
 V3.2 is feature-complete against `specs/v3.2/`.
 
+## V3.3 — `concord` theme (specs/v3.3/)
+
+7th palette, hand-ported from [chojs23/concord](https://github.com/chojs23/concord)'s ratatui color constants (not an Ink library — colors pulled from its Rust source and translated to hn-bits' `ansi256` format).
+
+| Phase | Status | Notes |
+|-------|--------|-------|
+| 1: `concord` palette | done | New entry in `theme.ts`'s `palettes` object: `accent` `ansi256(44)` (cyan, from `Color::Cyan`), `title` `ansi256(255)`, `muted` `ansi256(243)` (from `Color::DarkGray`), `error` `ansi256(196)` (from `Color::Red`), `comment` `ansi256(80)`; `score`/`selectionBackground`/`link`/`email` reuse the shared invariants every other palette already uses. No plumbing changes — `paletteNames()`, `resolvePaletteName()`, and `configKeys.ts`'s `validateTheme` all derive from the object's keys. Also fixed a latent test-isolation gap in `theme.test.ts`: the "nothing set" default tests read the real `~/.config/hn-bits/config.json` whenever `HN_BITS_CONFIG` was left unset, which broke once a real `ui.theme` value existed on disk from live-testing V3.2 |
+
+V3.3 is feature-complete against `specs/v3.3/`.
+
 ## Known gaps / follow-ups
 
 - V1.6 phases 1–8 complete; V1.6 is feature-complete against `specs/v1.6/`.
@@ -151,4 +161,5 @@ V3.2 is feature-complete against `specs/v3.2/`.
 - V3 phases 1–6 complete; V3 is feature-complete against `specs/v3/`.
 - V3.1 phase 1 complete; V3.1 is feature-complete against `specs/v3.1/`.
 - V3.2 phases 1–3 complete; V3.2 is feature-complete against `specs/v3.2/`.
+- V3.3 phase 1 complete; V3.3 is feature-complete against `specs/v3.3/`.
 - Next: the small slices V3.5 (desktop notify), V3.6 (Discord). Independent, can ship in any order.
