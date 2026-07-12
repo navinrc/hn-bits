@@ -1,4 +1,5 @@
 import type { Story } from './firebase.js';
+import { passesThreshold } from '../lib/subscriptionMatch.js';
 
 const BASE = 'https://hn.algolia.com/api/v1';
 
@@ -104,16 +105,29 @@ export interface RecentSearchOptions {
   createdAfter: number;
   /** 0/undefined = no threshold. */
   minPoints?: number;
+  /** 0/undefined = no threshold; OR'd with minPoints when both are set. */
+  minComments?: number;
   hitsPerPage?: number;
 }
 
 /**
  * Recency-ordered search (subscription matching + watcher window rescans),
  * as opposed to searchStories' relevance ordering.
+ *
+ * With a single active threshold it's pushed server-side as a numericFilter, same as before.
+ * With both active, Algolia OR-group syntax is skipped (unverified, adds encoding complexity)
+ * in favor of filtering the returned page client-side via passesThreshold.
  */
 export async function searchRecent(query: string, options: RecentSearchOptions): Promise<Story[]> {
+  const minPoints = options.minPoints ?? 0;
+  const minComments = options.minComments ?? 0;
+  const bothActive = minPoints > 0 && minComments > 0;
+
   const numericFilters = [`created_at_i>${options.createdAfter}`];
-  if (options.minPoints) numericFilters.push(`points>=${options.minPoints}`);
+  if (!bothActive) {
+    if (minPoints) numericFilters.push(`points>=${minPoints}`);
+    if (minComments) numericFilters.push(`num_comments>=${minComments}`);
+  }
   const params = new URLSearchParams({
     query,
     tags: 'story',
@@ -123,5 +137,6 @@ export async function searchRecent(query: string, options: RecentSearchOptions):
     queryType: 'prefixNone',
   });
   const res = await getJson<SearchResponse>(`${BASE}/search_by_date?${params}`);
-  return res.hits.filter((h) => h.title != null).map(hitToStory);
+  const stories = res.hits.filter((h) => h.title != null).map(hitToStory);
+  return bothActive ? stories.filter((s) => passesThreshold(s, minPoints, minComments)) : stories;
 }

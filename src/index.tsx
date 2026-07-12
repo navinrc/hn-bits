@@ -123,21 +123,29 @@ const sub = program.command('sub').description('Manage topic subscriptions');
 
 interface SubAddOptions {
   minPoints: string;
+  minComments: string;
+}
+
+function parseNonNegativeInt(value: string, flag: string): number {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    console.error(`${flag} must be a non-negative integer, got '${value}'`);
+    process.exit(1);
+  }
+  return parsed;
 }
 
 sub
   .command('add <name> <query...>')
   .description('Add a subscription')
   .option('--min-points <n>', 'minimum points threshold', '0')
+  .option('--min-comments <n>', 'minimum comments threshold', '0')
   .action(async (name: string, queryParts: string[], options: SubAddOptions) => {
-    const minPoints = Number(options.minPoints);
-    if (!Number.isInteger(minPoints) || minPoints < 0) {
-      console.error(`--min-points must be a non-negative integer, got '${options.minPoints}'`);
-      process.exit(1);
-    }
+    const minPoints = parseNonNegativeInt(options.minPoints, '--min-points');
+    const minComments = parseNonNegativeInt(options.minComments, '--min-comments');
     const { addSubscription } = await import('./db/subscriptions.js');
     try {
-      addSubscription(name, queryParts.join(' '), minPoints);
+      addSubscription(name, queryParts.join(' '), minPoints, minComments);
       console.log(`added '${name}'`);
     } catch (err) {
       console.error((err as Error).message);
@@ -151,6 +159,7 @@ sub
   .action(async () => {
     const { listSubscriptions } = await import('./db/subscriptions.js');
     const { formatAge } = await import('./lib/format.js');
+    const { thresholdLabel } = await import('./lib/subscriptionLabel.js');
     const subs = listSubscriptions();
     if (subs.length === 0) {
       console.log('no subscriptions yet');
@@ -158,9 +167,9 @@ sub
     }
     const nameWidth = Math.max(...subs.map((s) => s.name.length));
     for (const s of subs) {
-      const points = s.minPoints === 0 ? 'any' : `>=${s.minPoints}`;
+      const threshold = thresholdLabel(s.minPoints, s.minComments);
       const lastRun = s.lastRunAt == null ? 'never' : `${formatAge(s.lastRunAt)} ago`;
-      console.log(`${s.name.padEnd(nameWidth)}  "${s.query}"  ${points}  ${lastRun}`);
+      console.log(`${s.name.padEnd(nameWidth)}  "${s.query}"  ${threshold}  ${lastRun}`);
     }
   });
 

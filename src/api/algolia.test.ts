@@ -43,6 +43,36 @@ describe('searchRecent', () => {
     expect(url.searchParams.get('numericFilters')).toBe('created_at_i>1000');
   });
 
+  it('pushes num_comments as a server-side filter when only minComments is set', async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonResponse({ hits: [], nbPages: 1, nbHits: 0 }));
+    await searchRecent('zig', { createdAfter: 1000, minComments: 5 });
+
+    const url = new URL(vi.mocked(fetch).mock.calls[0]![0] as string);
+    expect(url.searchParams.get('numericFilters')).toBe('created_at_i>1000,num_comments>=5');
+  });
+
+  it('skips both server-side numeric filters when minPoints and minComments are both set, filtering client-side instead', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      jsonResponse({
+        hits: [
+          // fails points (10 < 20), passes comments (8 >= 5) -> kept via OR
+          { objectID: '1', title: 'A', url: null, author: 'a', points: 10, num_comments: 8, created_at_i: 2000 },
+          // fails both -> dropped
+          { objectID: '2', title: 'B', url: null, author: 'b', points: 10, num_comments: 1, created_at_i: 2001 },
+          // passes points -> kept
+          { objectID: '3', title: 'C', url: null, author: 'c', points: 30, num_comments: 0, created_at_i: 2002 },
+        ],
+        nbPages: 1,
+        nbHits: 3,
+      }),
+    );
+    const stories = await searchRecent('apple', { createdAfter: 1000, minPoints: 20, minComments: 5 });
+
+    const url = new URL(vi.mocked(fetch).mock.calls[0]![0] as string);
+    expect(url.searchParams.get('numericFilters')).toBe('created_at_i>1000');
+    expect(stories.map((s) => s.id)).toEqual([1, 3]);
+  });
+
   it('maps hits to stories and drops hits with no title', async () => {
     vi.mocked(fetch).mockResolvedValue(
       jsonResponse({

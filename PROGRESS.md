@@ -121,10 +121,21 @@ Subscriptions (CLI + subs tab TUI) + watcher + Telegram + SQLite + bookmarks.
 
 V3 is feature-complete against `specs/v3/`. Verified per-phase live via tmux (bookmarks: star display, flash timing, Saved tab CRUD; watcher: all three exit codes against real Algolia, `--dry-run`, `--once` enforcement; subs TUI: manager, add-with-preview cross-checked against a direct Algolia query, matches browsing, bookmark toggle, delete confirm, and the full search → `S` → save → back-to-search-results loop) plus `npm test` (261 tests) and `npm run build` after every phase.
 
+## V3.7 — Min-comments subscription threshold (specs/v3.7/)
+
+Second, independent `minComments` threshold OR'd with the existing `minPoints` floor.
+
+| Phase | Status | Notes |
+|-------|--------|-------|
+| 1: minComments end-to-end | done | Additive migration (`db/db.ts` MIGRATIONS[1]: `ALTER TABLE subscriptions ADD COLUMN min_comments INTEGER NOT NULL DEFAULT 0`); `Subscription.minComments`, `addSubscription`/`updateSubscription` thread it through (`db/subscriptions.ts`). New `lib/subscriptionMatch.ts` (`passesThreshold` — the spec's OR semantics as a pure, unit-tested function) and `lib/subscriptionLabel.ts` (`thresholdLabel` — `any`/`≥N pts`/`≥N cmts`/`≥N pts or ≥N cmts`, shared by `hn sub list`, `SubscriptionsView`, and `SubscriptionForm`'s preview). `api/algolia.ts`'s `searchRecent` gains `minComments`: single-threshold subscriptions still push one server-side `numericFilters` entry unchanged; both-active subscriptions skip server-side numeric filters entirely and apply `passesThreshold` client-side on the returned page. `watch.ts` and `SubscriptionMatches.tsx` pass `sub.minComments` through with no other changes (single change point, per spec). CLI: `hn sub add --min-comments <n>` mirrors `--min-points`. TUI: `SubscriptionForm.tsx` gains a 4th tab-ordered `min comments` field, live preview label reflects the OR |
+
+V3.7 is feature-complete against `specs/v3.7/`. `npm test` (275 tests, +13 new) and `npm run build` after implementation.
+
 ## Known gaps / follow-ups
 
 - V1.6 phases 1–8 complete; V1.6 is feature-complete against `specs/v1.6/`.
 - V2 phases 1–4 complete; V2 is feature-complete against `specs/v2/`.
 - V2.5 phase 1 complete; V2.5 is feature-complete against `specs/v2.5/`.
 - V3 phases 1–6 complete; V3 is feature-complete against `specs/v3/`.
+- V3.7 phase 1 complete; V3.7 is feature-complete against `specs/v3.7/`.
 - Next: the small slices V3.1 (theme config), V3.5 (desktop notify), V3.6 (Discord). None depend on each other and can ship in any order.
