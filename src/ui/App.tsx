@@ -84,7 +84,7 @@ export function App({ initialQuery, initialView }: AppProps): JSX.Element {
     changeFeed(next);
   }
 
-  const activeTab: TabId = view.name === 'saved' || view.name === 'subs' ? view.name : feed;
+  const activeTab: TabId = tabForView(view) ?? feed;
   const ctx: ViewContext = { feed, config, setFeed: changeFeed, setTab: changeTab, setView, exit };
 
   return (
@@ -96,6 +96,14 @@ export function App({ initialQuery, initialView }: AppProps): JSX.Element {
       <Footer>{renderFooter(view, ctx)}</Footer>
     </Screen>
   );
+}
+
+/** Traces returnTo chains back to the tab a nested view (comments/ask/sub-form) was opened from. */
+function tabForView(view: View): TabId | null {
+  if (view.name === 'saved' || view.name === 'subs') return view.name;
+  if (view.name === 'sub-matches') return 'subs';
+  if (view.name === 'comments' || view.name === 'ask' || view.name === 'sub-form') return tabForView(view.returnTo);
+  return null;
 }
 
 interface ViewContext {
