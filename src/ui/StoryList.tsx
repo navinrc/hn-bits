@@ -13,7 +13,7 @@ import { LoadingIndicator } from './LoadingIndicator.js';
 import { STORY_ROW_HEIGHT } from './StoryRow.js';
 import { StoryListView } from './StoryListView.js';
 import { SummaryPanel } from './SummaryPanel.js';
-import { theme } from './theme.js';
+import { useTheme } from './theme.js';
 import { useFlash } from './useFlash.js';
 
 const BATCH_SIZE = 30;
@@ -40,6 +40,7 @@ export function StoryList({
   onSearchRequested,
   onAskAI,
 }: StoryListProps): JSX.Element {
+  const theme = useTheme();
   const { columns, rows } = useWindowSize();
   const bodyHeight = Math.max(1, rows - HEADER_ROWS - footerRows(LIST_KEYS, columns));
 

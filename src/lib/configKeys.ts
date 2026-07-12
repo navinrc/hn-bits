@@ -1,9 +1,20 @@
+import { paletteNames } from '../ui/theme.js';
+
 export type ConfigValueType = 'string' | 'boolean' | 'number';
 
 export interface ConfigKeyDef {
   path: readonly [section: string, field: string];
   type: ConfigValueType;
   sensitive?: boolean;
+  /** Extra validation beyond type coercion. Throws on invalid input. */
+  validate?: (raw: string) => void;
+}
+
+function validateTheme(raw: string): void {
+  const names = paletteNames();
+  if (!names.includes(raw as (typeof names)[number])) {
+    throw new Error(`unknown theme '${raw}' (valid: ${names.join(', ')})`);
+  }
 }
 
 export const CONFIG_KEYS: Record<string, ConfigKeyDef> = {
@@ -14,10 +25,12 @@ export const CONFIG_KEYS: Record<string, ConfigKeyDef> = {
   'telegram.chatId': { path: ['telegram', 'chatId'], type: 'string' },
   'desktopNotifications.enabled': { path: ['desktopNotifications', 'enabled'], type: 'boolean' },
   'desktopNotifications.timeoutSeconds': { path: ['desktopNotifications', 'timeoutSeconds'], type: 'number' },
+  'ui.theme': { path: ['ui', 'theme'], type: 'string', validate: validateTheme },
 };
 
 /** Coerces a CLI string argument to the key's declared type. Throws on invalid input. */
 export function parseValue(def: ConfigKeyDef, raw: string): string | number | boolean {
+  def.validate?.(raw);
   if (def.type === 'boolean') {
     if (raw !== 'true' && raw !== 'false') throw new Error(`expected 'true' or 'false', got '${raw}'`);
     return raw === 'true';

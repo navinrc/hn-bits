@@ -15,7 +15,7 @@ import { LoadingIndicator } from './LoadingIndicator.js';
 import { STORY_ROW_HEIGHT } from './StoryRow.js';
 import { StoryListView } from './StoryListView.js';
 import { SummaryPanel } from './SummaryPanel.js';
-import { theme } from './theme.js';
+import { useTheme } from './theme.js';
 import { useFlash } from './useFlash.js';
 
 const WINDOW_DAYS = 7;
@@ -42,6 +42,7 @@ export function SubscriptionMatches({
   onBack,
   onAskAI,
 }: SubscriptionMatchesProps): JSX.Element {
+  const theme = useTheme();
   const { columns, rows } = useWindowSize();
   const bodyHeight = Math.max(1, rows - HEADER_ROWS - footerRows(SUB_MATCHES_KEYS, columns) - HEADER_LINES);
 

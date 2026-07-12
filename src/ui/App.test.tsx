@@ -1,10 +1,26 @@
-import { describe, expect, it, vi } from 'vitest';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { addSubscription } from '../db/subscriptions.js';
+import { getConfigValue } from '../lib/configStore.js';
 import { useTempDb } from '../test/dbHarness.js';
 import { render } from '../test/inkHarness.js';
 import { App } from './App.js';
 
 useTempDb('hn-bits-app-');
+
+let configDir: string;
+
+beforeEach(() => {
+  configDir = mkdtempSync(join(tmpdir(), 'hn-bits-app-config-'));
+  process.env.HN_BITS_CONFIG = join(configDir, 'config.json');
+});
+
+afterEach(() => {
+  rmSync(configDir, { recursive: true, force: true });
+  delete process.env.HN_BITS_CONFIG;
+});
 
 vi.mock('../api/firebase.js', () => ({
   fetchStoryIds: vi.fn(() => new Promise(() => {})),
@@ -55,6 +71,46 @@ describe('App', () => {
     instance.stdin.writeInput('?');
     await instance.waitUntilRenderFlush();
     expect(instance.lastFrame()).toContain('/ ?');
+
+    instance.unmount();
+  });
+
+  it('opens the theme picker on T and cancels on escape without changing theme', async () => {
+    const instance = render(<App />, 80, 24);
+    await instance.waitUntilRenderFlush();
+
+    instance.stdin.writeInput('T');
+    await instance.waitUntilRenderFlush();
+    expect(instance.lastFrame()).toContain('hn (current)');
+
+    // A lone ESC byte is buffered as a "pending" escape sequence (it might be the
+    // start of an arrow-key CSI code) until Ink's 20ms flush timer fires.
+    instance.stdin.writeInput('\x1b');
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    await instance.waitUntilRenderFlush();
+    expect(instance.lastFrame()).not.toContain('(current)');
+    expect(getConfigValue('ui.theme')).toBeUndefined();
+
+    instance.unmount();
+  });
+
+  it('applies the picked theme live and persists it to config on enter', async () => {
+    const instance = render(<App />, 80, 24);
+    await instance.waitUntilRenderFlush();
+
+    instance.stdin.writeInput('T');
+    await instance.waitUntilRenderFlush();
+    instance.stdin.writeInput('j');
+    await instance.waitUntilRenderFlush();
+    instance.stdin.writeInput('\r');
+    await instance.waitUntilRenderFlush();
+
+    expect(instance.lastFrame()).not.toContain('(current)');
+    expect(getConfigValue('ui.theme')).toBe('mocha');
+
+    instance.stdin.writeInput('T');
+    await instance.waitUntilRenderFlush();
+    expect(instance.lastFrame()).toContain('mocha (current)');
 
     instance.unmount();
   });

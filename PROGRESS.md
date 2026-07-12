@@ -121,10 +121,45 @@ Subscriptions (CLI + subs tab TUI) + watcher + Telegram + SQLite + bookmarks.
 
 V3 is feature-complete against `specs/v3/`. Verified per-phase live via tmux (bookmarks: star display, flash timing, Saved tab CRUD; watcher: all three exit codes against real Algolia, `--dry-run`, `--once` enforcement; subs TUI: manager, add-with-preview cross-checked against a direct Algolia query, matches browsing, bookmark toggle, delete confirm, and the full search → `S` → save → back-to-search-results loop) plus `npm test` (261 tests) and `npm run build` after every phase.
 
+## V3.1 — Theme persistence (specs/v3.1/)
+
+New `ui.theme` config key, additive to V2.5's `hn config` CLI.
+
+| Phase | Status | Notes |
+|-------|--------|-------|
+| 1: `ui.theme` config key | done | `Config.ui?.theme` added (`lib/config.ts`, passed through as-is like `telegram`); `CONFIG_KEYS` gains `ui.theme` with a `validate` hook on `ConfigKeyDef` (`lib/configKeys.ts`) checked against `paletteNames()`, `unknown theme 'x' (valid: ...)` on a bad `set`; `configStore.ts`'s `resolveValue` generalized off its `'telegram' \| 'desktopNotifications'` union to include `'ui'`. `theme.ts`'s `resolvePaletteName` gains the config lookup between env and default (flag > `HN_THEME` env > `ui.theme` config > `hn` default), new `resolvePaletteSource()` reports which level won for `hn theme`'s status line (`(from flag/env/config)` / `(default)`); an invalid persisted value resolves to `hn` same as an invalid env var today. `hn theme` output and `hn config set/get ui.theme` verified live |
+
+V3.1 is feature-complete against `specs/v3.1/`.
+
+## V3.2 — Live in-TUI theme picker (specs/v3.2/)
+
+Change theme from inside a running session, no restart.
+
+| Phase | Status | Notes |
+|-------|--------|-------|
+| 1: reactive theme | done | Theme was a module-scoped singleton (`theme.ts`'s `export const theme = resolveTheme()`) read by 13 components at import time — turned reactive via a new `ThemeContext`/`useTheme()` pair; all 13 importers switched from the static import to the hook. `Comments.tsx`'s `buildHeaderSpans`/`tokenToSpan`/`buildRow` and `TabBar.tsx`'s `segmentColor` (module-level pure functions, can't call hooks) take `theme` as an explicit parameter instead. No behavior change on its own — `ThemeContext`'s default value is the same singleton every non-App render already saw |
+| 2: picker overlay | done | `T` (new `GLOBAL_KEYS` entry) opens `ThemePicker.tsx` — `SubscriptionsView`-style list over `paletteNames()`, cursor opens on the active theme, `j`/`k`/arrows move, `esc` cancels. `App.tsx` owns `paletteName`/`themePickerOpen` state, resolves `activeTheme` each render, provides it via `ThemeContext.Provider`; picker takes the same overlay slot as `HelpOverlay`. New `THEME_PICKER_KEYS` footer hint. Adding a global key lengthens every footer hint enough to wrap an extra line at 80 columns — bumped `Comments.test.tsx`'s fixed test terminal height by one row to keep existing assertions valid |
+| 3: persistence | done | `enter` in the picker calls `setConfigValue('ui.theme', name)` (reused as-is from V3.1) alongside the live `setPaletteName`, so the choice survives a restart; `esc` writes nothing. Verified live via tmux: `T` → navigate → `enter` recolors the whole UI immediately (confirmed via ANSI accent codes matching the target palette) |
+
+V3.2 is feature-complete against `specs/v3.2/`.
+
+## V3.3 — `concord` theme (specs/v3.3/)
+
+7th palette, hand-ported from [chojs23/concord](https://github.com/chojs23/concord)'s ratatui color constants (not an Ink library — colors pulled from its Rust source and translated to hn-bits' `ansi256` format).
+
+| Phase | Status | Notes |
+|-------|--------|-------|
+| 1: `concord` palette | done | New entry in `theme.ts`'s `palettes` object: `accent` `ansi256(44)` (cyan, from `Color::Cyan`), `title` `ansi256(255)`, `muted` `ansi256(243)` (from `Color::DarkGray`), `error` `ansi256(196)` (from `Color::Red`), `comment` `ansi256(80)`; `score`/`selectionBackground`/`link`/`email` reuse the shared invariants every other palette already uses. No plumbing changes — `paletteNames()`, `resolvePaletteName()`, and `configKeys.ts`'s `validateTheme` all derive from the object's keys. Also fixed a latent test-isolation gap in `theme.test.ts`: the "nothing set" default tests read the real `~/.config/hn-bits/config.json` whenever `HN_BITS_CONFIG` was left unset, which broke once a real `ui.theme` value existed on disk from live-testing V3.2 |
+
+V3.3 is feature-complete against `specs/v3.3/`.
+
 ## Known gaps / follow-ups
 
 - V1.6 phases 1–8 complete; V1.6 is feature-complete against `specs/v1.6/`.
 - V2 phases 1–4 complete; V2 is feature-complete against `specs/v2/`.
 - V2.5 phase 1 complete; V2.5 is feature-complete against `specs/v2.5/`.
 - V3 phases 1–6 complete; V3 is feature-complete against `specs/v3/`.
-- Next: the small slices V3.1 (theme config), V3.5 (desktop notify), V3.6 (Discord). None depend on each other and can ship in any order.
+- V3.1 phase 1 complete; V3.1 is feature-complete against `specs/v3.1/`.
+- V3.2 phases 1–3 complete; V3.2 is feature-complete against `specs/v3.2/`.
+- V3.3 phase 1 complete; V3.3 is feature-complete against `specs/v3.3/`.
+- Next: the small slices V3.5 (desktop notify), V3.6 (Discord). Independent, can ship in any order.

@@ -1,7 +1,7 @@
 import { type JSX } from 'react';
 import { Box, Text, useWindowSize } from 'ink';
 import type { TabId } from '../lib/listNavigation.js';
-import { theme } from './theme.js';
+import { useTheme, type Theme } from './theme.js';
 
 interface TabBarProps {
   active: TabId;
@@ -104,15 +104,16 @@ function buildBottomRuleSegments(columns: number, wallColumn: number, innerWidth
   return [{ text: line, color: 'accent' }];
 }
 
-function segmentColor(color: SegmentColor): string {
+function segmentColor(color: SegmentColor, theme: Theme): string {
   return color === 'accent' ? theme.colors.accent : theme.colors.muted;
 }
 
 function SegmentRow({ segments }: { segments: Segment[] }): JSX.Element {
+  const theme = useTheme();
   return (
     <Box>
       {segments.map((segment, index) => (
-        <Text key={index} bold={segment.bold} color={segmentColor(segment.color)}>
+        <Text key={index} bold={segment.bold} color={segmentColor(segment.color, theme)}>
           {segment.text}
         </Text>
       ))}

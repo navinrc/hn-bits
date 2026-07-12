@@ -10,7 +10,7 @@ import { truncateTitle } from '../lib/format.js';
 import { htmlToText } from '../lib/html.js';
 import { wrapPlainText } from '../lib/viewport.js';
 import { HEADER_ROWS } from './Layout.js';
-import { theme } from './theme.js';
+import { useTheme } from './theme.js';
 
 interface AskAIProps {
   story: Story;
@@ -40,6 +40,7 @@ async function resolveArticle(story: Story): Promise<{ article: { text: string }
 }
 
 export function AskAI({ story, comments, config, onBack }: AskAIProps): JSX.Element {
+  const theme = useTheme();
   const { columns, rows } = useWindowSize();
   const [status, setStatus] = useState<Status>(config ? 'preparing' : 'hint');
   const [unavailableDetail, setUnavailableDetail] = useState('');

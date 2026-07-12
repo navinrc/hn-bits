@@ -4,7 +4,7 @@ import type { PromptResult } from '../ai/context.js';
 import { chatStream, describeError, type ChatMessage } from '../ai/ollama.js';
 import { AI_SETUP_HINT_LINES, type Config } from '../lib/config.js';
 import { wrapPlainText } from '../lib/viewport.js';
-import { theme } from './theme.js';
+import { useTheme } from './theme.js';
 
 const SYSTEM_PROMPT =
   'You are a concise assistant summarizing Hacker News content. Plain text only, no markdown headers. Max ~150 words.';
@@ -20,6 +20,7 @@ interface SummaryPanelProps {
 type Status = 'setup-hint' | 'preparing' | 'thinking' | 'streaming' | 'done' | 'error';
 
 export function SummaryPanel({ config, buildPrompt, height, width, onClose }: SummaryPanelProps): JSX.Element {
+  const theme = useTheme();
   const [status, setStatus] = useState<Status>(config ? 'preparing' : 'setup-hint');
   const [content, setContent] = useState('');
   const [notice, setNotice] = useState('');

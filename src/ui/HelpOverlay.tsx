@@ -1,7 +1,7 @@
 import { type JSX } from 'react';
 import { Box, Text } from 'ink';
 import { GLOBAL_KEYS, type KeyBinding } from './keymap.js';
-import { theme } from './theme.js';
+import { useTheme } from './theme.js';
 
 interface HelpOverlayProps {
   title: string;
@@ -9,6 +9,7 @@ interface HelpOverlayProps {
 }
 
 export function HelpOverlay({ title, keys }: HelpOverlayProps): JSX.Element {
+  const theme = useTheme();
   return (
     <Box flexDirection="column">
       <Text color={theme.colors.title}>{title}</Text>

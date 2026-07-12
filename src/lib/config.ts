@@ -16,6 +16,9 @@ export interface Config {
     enabled: boolean;
     timeoutSeconds: number;
   };
+  ui?: {
+    theme?: string;
+  };
 }
 
 export const DEFAULT_OLLAMA_CONFIG = {
@@ -64,6 +67,7 @@ export function loadConfig(): Config | null {
         enabled: parsed.desktopNotifications.enabled,
         timeoutSeconds: parsed.desktopNotifications.timeoutSeconds ?? 10,
       },
+      ui: parsed.ui,
     };
   } catch (err) {
     console.warn(`config invalid: ${(err as Error).message} — AI disabled`);

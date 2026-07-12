@@ -1,6 +1,6 @@
 import { type JSX, type ReactNode } from 'react';
 import { Box, Text, useWindowSize } from 'ink';
-import { theme } from './theme.js';
+import { useTheme } from './theme.js';
 
 const MIN_ROWS = 8;
 
@@ -49,6 +49,7 @@ interface FooterProps {
 }
 
 export function Footer({ children }: FooterProps): JSX.Element {
+  const theme = useTheme();
   return (
     <Box flexShrink={0}>
       <Text color={theme.colors.muted}>{children}</Text>

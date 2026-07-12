@@ -8,6 +8,7 @@ export interface KeyBinding {
 export const GLOBAL_KEYS: readonly KeyBinding[] = [
   { key: 'q', label: 'quit' },
   { key: '?', label: 'help' },
+  { key: 'T', label: 'theme' },
 ];
 
 export const LIST_KEYS: readonly KeyBinding[] = [
@@ -75,6 +76,12 @@ export const SUB_MATCHES_KEYS: readonly KeyBinding[] = [
 export const SUB_FORM_KEYS: readonly KeyBinding[] = [
   { key: 'tab', label: 'next field' },
   { key: 'enter', label: 'save' },
+  { key: 'esc', label: 'cancel' },
+];
+
+export const THEME_PICKER_KEYS: readonly KeyBinding[] = [
+  { key: 'j/k', label: 'move' },
+  { key: 'enter', label: 'apply' },
   { key: 'esc', label: 'cancel' },
 ];
 

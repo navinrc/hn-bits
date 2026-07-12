@@ -14,7 +14,7 @@ import { LoadingIndicator } from './LoadingIndicator.js';
 import { STORY_ROW_HEIGHT } from './StoryRow.js';
 import { StoryListView } from './StoryListView.js';
 import { SummaryPanel } from './SummaryPanel.js';
-import { theme } from './theme.js';
+import { useTheme } from './theme.js';
 import { useFlash } from './useFlash.js';
 
 const FETCH_THRESHOLD = 10;
@@ -41,6 +41,7 @@ export function SearchResults({
   onAskAI,
   onSubscribe,
 }: SearchResultsProps): JSX.Element {
+  const theme = useTheme();
   const { columns, rows } = useWindowSize();
   const bodyHeight = Math.max(1, rows - HEADER_ROWS - footerRows(SEARCH_RESULTS_KEYS, columns) - HEADER_LINES);
 

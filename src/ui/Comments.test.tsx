@@ -47,7 +47,7 @@ beforeEach(() => {
 function renderComments() {
   const onBack = vi.fn();
   const onAskAI = vi.fn();
-  const instance = render(<Comments story={story} config={null} onBack={onBack} onAskAI={onAskAI} />, 80, 14);
+  const instance = render(<Comments story={story} config={null} onBack={onBack} onAskAI={onAskAI} />, 80, 15);
   return { instance, onBack, onAskAI };
 }
 

@@ -1,3 +1,6 @@
+import { createContext, useContext } from 'react';
+import { loadConfig } from '../lib/config.js';
+
 export interface ThemeColors {
   accent: string;
   title: string;
@@ -108,6 +111,18 @@ const palettes = {
     link: LINK,
     email: EMAIL,
   },
+  // Ported from chojs23/concord's ratatui color constants (src/tui/ui/types.rs, message/format.rs).
+  concord: {
+    accent: ansi256(44),
+    title: ansi256(255),
+    muted: ansi256(243),
+    error: ansi256(196),
+    score: ansi256(208),
+    comment: ansi256(80),
+    selectionBackground: SELECTION_BACKGROUND,
+    link: LINK,
+    email: EMAIL,
+  },
 } satisfies Record<string, ThemeColors>;
 
 export type PaletteName = keyof typeof palettes;
@@ -122,9 +137,27 @@ function isPaletteName(name: string): name is PaletteName {
   return name in palettes;
 }
 
+export type PaletteSource = 'flag' | 'env' | 'config' | 'default';
+
+/** First defined candidate across flag > HN_THEME env > ui.theme config, with where it came from. */
+function candidatePaletteName(name?: string): { raw?: string; source: PaletteSource } {
+  if (name !== undefined) return { raw: name, source: 'flag' };
+  const env = process.env['HN_THEME'];
+  if (env !== undefined) return { raw: env, source: 'env' };
+  const configured = loadConfig()?.ui?.theme;
+  if (configured !== undefined) return { raw: configured, source: 'config' };
+  return { source: 'default' };
+}
+
 export function resolvePaletteName(name?: string): PaletteName {
-  const candidate = name ?? process.env['HN_THEME'] ?? DEFAULT_PALETTE;
-  return isPaletteName(candidate) ? candidate : DEFAULT_PALETTE;
+  const { raw } = candidatePaletteName(name);
+  return raw !== undefined && isPaletteName(raw) ? raw : DEFAULT_PALETTE;
+}
+
+/** Where the active theme choice came from, for `hn theme`'s status line. */
+export function resolvePaletteSource(name?: string): PaletteSource {
+  const { raw, source } = candidatePaletteName(name);
+  return raw !== undefined && isPaletteName(raw) ? source : 'default';
 }
 
 export function resolveTheme(name?: string): Theme {
@@ -132,3 +165,9 @@ export function resolveTheme(name?: string): Theme {
 }
 
 export const theme = resolveTheme();
+
+export const ThemeContext = createContext<Theme>(theme);
+
+export function useTheme(): Theme {
+  return useContext(ThemeContext);
+}

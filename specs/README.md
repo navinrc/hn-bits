@@ -12,7 +12,9 @@ Terminal-first Hacker News client (`hn` binary). Specs versioned by release; eac
 | V2 | Local AI: summaries + Ask AI (Ollama) | **done** | [v2/](v2/00-overview.md) |
 | V2.5 | Config CLI (`hn config get/set/unset/list`) | **done** | [v2.5/](v2.5/01-config-cli.md) |
 | V3 | Subscriptions (CLI + subs tab TUI) + watcher + Telegram + SQLite + bookmarks | **done** | [v3/](v3/00-overview.md) |
-| V3.1 | Theme persistence (`ui.theme` config key) | spec'd | [v3.1/](v3.1/01-theme-config.md) |
+| V3.1 | Theme persistence (`ui.theme` config key) | **done** | [v3.1/](v3.1/01-theme-config.md) |
+| V3.2 | Live in-TUI theme picker (`T`) | **done** | [v3.2/](v3.2/01-live-theme-picker.md) |
+| V3.3 | `concord` theme, ported from chojs23/concord | **done** | [v3.3/](v3.3/01-concord-theme.md) |
 | V3.5 | macOS desktop notifications (alerter) | spec'd | [v3.5/](v3.5/01-desktop-notifications.md) |
 | V3.6 | Discord notifications (webhook) | spec'd | [v3.6/](v3.6/01-discord.md) |
 
