@@ -94,7 +94,7 @@ describe('createDesktopNotifier', () => {
       '312 pts · 214 comments',
       'evil "$(rm -rf ~)" title',
       '15',
-      'hn-7',
+      'hn-7-41211001',
       'https://example.com/article',
       expect.stringMatching(/\/alerter$/),
     ]);

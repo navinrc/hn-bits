@@ -38,7 +38,7 @@ function wrapperArguments({ subscription, story }: Match, timeoutSeconds: number
     `${story.score} pts · ${story.descendants} comments`,
     story.title,
     String(timeoutSeconds),
-    `hn-${subscription.id}`,
+    `hn-${subscription.id}-${story.id}`,
     story.url ?? hnItemUrl(story.id),
     alerterPath,
   ];

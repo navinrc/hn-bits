@@ -33,7 +33,7 @@ hn config set desktopNotifications.timeoutSeconds 10   # optional, default 10
 
 ```sh
 r=$(alerter --title "🔔 <sub name>" --subtitle "<points> pts · <comments> comments" \
-    --message "<story title>" --actions Open --timeout <timeoutSeconds> --group hn-<subId>)
+    --message "<story title>" --actions Open --timeout <timeoutSeconds> --group hn-<subId>-<storyId>)
 case "$r" in @TIMEOUT|@CLOSED) ;; *) open "<url>" ;; esac
 ```
 
@@ -41,7 +41,7 @@ alerter v26.5 (Swift rewrite) accepts only double-dash flags; the single-dash fo
 
 - **Click opens the story URL** (HN discussion link for text posts, same rule as the telegram message). Body click (`@CONTENTCLICKED`) and the `Open` action both open. Title and URL shell-escaped.
 - **Fire-and-forget:** `send()` resolves once the wrapper spawns; the wrapper, not the watcher, waits out the interaction, lives at most `timeoutSeconds`, and exits with the notification. Watcher exit is never delayed.
-- `-group hn-<subId>` replaces a subscription's stale notification instead of stacking.
+- `--group hn-<subId>-<storyId>`: per-story groups, so multiple matches from one run each keep their own clickable notification (a per-sub group made the newest match replace the rest — the collapsed stack opened only the most recent URL). A re-sent story still replaces its own stale copy.
 
 ## Watcher deltas ([../v3/03-watcher.md](../v3/03-watcher.md))
 
