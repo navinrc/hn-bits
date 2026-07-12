@@ -6,7 +6,6 @@ A fullscreen terminal client for Hacker News, built with TypeScript + Ink. Optio
 [![CI](https://img.shields.io/github/actions/workflow/status/navinrc/hn-bits/release.yml)](https://github.com/navinrc/hn-bits/actions)
 [![Release](https://img.shields.io/github/v/release/navinrc/hn-bits)](https://github.com/navinrc/hn-bits/releases)
 [![npm downloads](https://img.shields.io/npm/dt/hn-bits)](https://www.npmjs.com/package/hn-bits)
-[![GitHub downloads](https://img.shields.io/github/downloads/navinrc/hn-bits/total)](https://github.com/navinrc/hn-bits/releases)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ![Streaming article summary, then a multi-turn Ask AI conversation grounded in the same story](docs/ai-demo.gif)
