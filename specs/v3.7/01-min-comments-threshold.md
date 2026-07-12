@@ -40,20 +40,25 @@ Strict generalization of today's behavior: any subscription with `minComments ==
 subscription that predates this feature) behaves exactly as before — a single AND'able points floor.
 OR only activates once both thresholds are set to non-zero.
 
-**Why client-side, not Algolia `numericFilters` OR-groups:** Algolia supports OR via nested-array
-`numericFilters` syntax, but that's unverified against the live `hn.algolia.com` endpoint and adds
-query-encoding complexity for no real gain — hit volume is already capped at 50/page with no
-pagination (existing V3 limit, unchanged). Instead:
+**Why two server-filtered requests unioned, not Algolia `numericFilters` OR-groups or a single
+unfiltered fetch:** Algolia supports OR via nested-array `numericFilters` syntax, but that's
+unverified against the live `hn.algolia.com` endpoint and adds query-encoding complexity for no
+real gain. The first cut instead fetched one page with no server-side floor at all and filtered
+`passes()` client-side — but for high-volume queries that undercounts badly: the top-50-by-recency
+*unfiltered* pool gets crowded out by brand-new, zero-engagement submissions, pushing older
+qualifying stories outside the window before the OR check ever runs (e.g. `Claude Code: >=30 pts
+OR >=1 comment` returned 2 matches instead of the 5+ that individually satisfy each side).
 
 - If only one threshold is active, push the matching server-side `numericFilters` entry
   (`points>=N` or `num_comments>=N`) exactly as `points>=N` is pushed today — zero payload change
   for existing single-threshold subscriptions.
-- If both are active, skip both server-side numeric filters (keep `created_at_i`/`query`/`tags`
-  only) and apply `passes()` client-side on the returned page before returning from `searchRecent`.
+- If both are active, run two requests in parallel — one with `points>=N`, one with
+  `num_comments>=M` — each hitting the full 50-hit server-side cap like the single-threshold case
+  does, then union by story id (dedup), sort by recency, and trim to the caller's requested limit.
 
 Single change point in `src/api/algolia.ts`'s `searchRecent` — `watch.ts`, `SubscriptionMatches.tsx`,
 and `SubscriptionForm.tsx`'s live preview all pick this up by passing `minComments` through, no
-duplicated filter logic elsewhere.
+duplicated filter logic elsewhere. Costs one extra HTTP request only when both thresholds are set.
 
 ## CLI
 

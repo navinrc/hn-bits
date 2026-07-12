@@ -51,42 +51,60 @@ describe('searchRecent', () => {
     expect(url.searchParams.get('numericFilters')).toBe('created_at_i>1000,num_comments>=5');
   });
 
-  it('skips both server-side numeric filters when minPoints and minComments are both set, filtering client-side instead', async () => {
-    vi.mocked(fetch).mockResolvedValue(
-      jsonResponse({
-        hits: [
-          // fails points (10 < 20), passes comments (8 >= 5) -> kept via OR
-          { objectID: '1', title: 'A', url: null, author: 'a', points: 10, num_comments: 8, created_at_i: 2000 },
-          // fails both -> dropped
-          { objectID: '2', title: 'B', url: null, author: 'b', points: 10, num_comments: 1, created_at_i: 2001 },
-          // passes points -> kept
-          { objectID: '3', title: 'C', url: null, author: 'c', points: 30, num_comments: 0, created_at_i: 2002 },
-        ],
-        nbPages: 1,
-        nbHits: 3,
-      }),
-    );
+  it('runs two separately server-filtered requests when both thresholds are active, and unions the results', async () => {
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const url = new URL(input as string);
+      const filters = url.searchParams.get('numericFilters');
+      if (filters === 'created_at_i>1000,points>=20') {
+        return jsonResponse({
+          hits: [
+            { objectID: '3', title: 'C', url: null, author: 'a', points: 30, num_comments: 0, created_at_i: 2002 },
+            { objectID: '1', title: 'A', url: null, author: 'a', points: 25, num_comments: 8, created_at_i: 2000 },
+          ],
+          nbPages: 1,
+          nbHits: 2,
+        });
+      }
+      if (filters === 'created_at_i>1000,num_comments>=5') {
+        return jsonResponse({
+          hits: [
+            // overlaps with story 1 above -> deduped
+            { objectID: '1', title: 'A', url: null, author: 'a', points: 25, num_comments: 8, created_at_i: 2000 },
+            // points-only miss, kept via comments
+            { objectID: '4', title: 'D', url: null, author: 'a', points: 0, num_comments: 6, created_at_i: 2003 },
+          ],
+          nbPages: 1,
+          nbHits: 2,
+        });
+      }
+      throw new Error(`unexpected numericFilters: ${filters}`);
+    });
+
     const stories = await searchRecent('apple', { createdAfter: 1000, minPoints: 20, minComments: 5 });
 
-    const url = new URL(vi.mocked(fetch).mock.calls[0]![0] as string);
-    expect(url.searchParams.get('numericFilters')).toBe('created_at_i>1000');
-    expect(stories.map((s) => s.id)).toEqual([1, 3]);
+    expect(vi.mocked(fetch)).toHaveBeenCalledTimes(2);
+    // most recent first, story 4 (2003) > story 3 (2002) > story 1 (2000), no duplicate
+    expect(stories.map((s) => s.id)).toEqual([4, 3, 1]);
   });
 
-  it('over-fetches the full 50-hit pool (not the caller-requested limit) when both thresholds are active, then trims after filtering', async () => {
-    // 10 raw hits, 8 pass minPoints>=20. A naive hitsPerPage=5-then-filter would only ever
-    // see the first 5 raw hits and could keep as few as 3; over-fetching first should find
-    // all 8 matches, then trim down to the caller's requested limit of 5.
-    const hits = Array.from({ length: 10 }, (_, i) => ({
-      objectID: String(i),
-      title: `story ${i}`,
-      url: null,
-      author: 'a',
-      points: i < 8 ? 20 : 0,
-      num_comments: 0,
-      created_at_i: 2000 + i,
-    }));
-    vi.mocked(fetch).mockResolvedValue(jsonResponse({ hits, nbPages: 1, nbHits: 10 }));
+  it('trims the merged both-thresholds result to the caller-requested limit', async () => {
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const url = new URL(input as string);
+      expect(url.searchParams.get('hitsPerPage')).toBe('50');
+      const filters = url.searchParams.get('numericFilters');
+      const hits = filters?.includes('points')
+        ? Array.from({ length: 8 }, (_, i) => ({
+            objectID: String(i),
+            title: `story ${i}`,
+            url: null,
+            author: 'a',
+            points: 20,
+            num_comments: 0,
+            created_at_i: 2000 + i,
+          }))
+        : [];
+      return jsonResponse({ hits, nbPages: 1, nbHits: hits.length });
+    });
 
     const stories = await searchRecent('apple', {
       createdAfter: 1000,
@@ -95,9 +113,9 @@ describe('searchRecent', () => {
       hitsPerPage: 5,
     });
 
-    const url = new URL(vi.mocked(fetch).mock.calls[0]![0] as string);
-    expect(url.searchParams.get('hitsPerPage')).toBe('50');
-    expect(stories.map((s) => s.id)).toEqual([0, 1, 2, 3, 4]);
+    expect(stories).toHaveLength(5);
+    // most recent first: story 7 (2007) down to story 3 (2003)
+    expect(stories.map((s) => s.id)).toEqual([7, 6, 5, 4, 3]);
   });
 
   it('maps hits to stories and drops hits with no title', async () => {
