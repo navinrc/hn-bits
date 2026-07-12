@@ -109,61 +109,39 @@ export interface RecentSearchOptions {
   hitsPerPage?: number;
 }
 
-const MAX_HITS_PER_PAGE = 50;
-
-async function fetchPage(query: string, numericFilters: string[], hitsPerPage: number): Promise<Story[]> {
-  const params = new URLSearchParams({
-    query,
-    tags: 'story',
-    numericFilters: numericFilters.join(','),
-    hitsPerPage: String(hitsPerPage),
-    typoTolerance: 'false',
-    queryType: 'prefixNone',
-  });
-  const res = await getJson<SearchResponse>(`${BASE}/search_by_date?${params}`);
-  return res.hits.filter((h) => h.title != null).map(hitToStory);
-}
-
-/** Union by id, most recent first — used to merge the points/comments pages when both thresholds are active. */
-function mergeByRecency(pages: Story[][]): Story[] {
-  const seen = new Set<number>();
-  const merged: Story[] = [];
-  for (const story of pages.flat()) {
-    if (seen.has(story.id)) continue;
-    seen.add(story.id);
-    merged.push(story);
-  }
-  return merged.sort((a, b) => b.time - a.time);
-}
+const DEFAULT_HITS_PER_PAGE = 50;
 
 /**
  * Recency-ordered search (subscription matching + watcher window rescans),
  * as opposed to searchStories' relevance ordering.
  *
- * With a single active threshold it's pushed server-side as a numericFilter. With both active,
- * Algolia OR-group numericFilters syntax is skipped (unverified against the live endpoint) in
- * favor of two separately-filtered requests, unioned client-side: fetching one unfiltered page
- * and filtering after the hitsPerPage cut undercounts for high-volume queries, since the
- * requested items with no server-side floor bury older qualifying stories outside the window.
- * Running each threshold as its own server-filtered query (same mechanism as the single-active
- * case) avoids that.
+ * Both thresholds are always pushed server-side. With one active it's a flat AND'd
+ * numericFilters string, same as before minComments existed. With both active, Algolia's
+ * nested-array numericFilters OR syntax (`[a, [b, c]]` = a AND (b OR c)) — verified live against
+ * hn.algolia.com — expresses `created_at_i>X AND (points>=N OR num_comments>=M)` in one request.
  */
 export async function searchRecent(query: string, options: RecentSearchOptions): Promise<Story[]> {
   const minPoints = options.minPoints ?? 0;
   const minComments = options.minComments ?? 0;
-  const requestedLimit = options.hitsPerPage ?? MAX_HITS_PER_PAGE;
   const createdAfterFilter = `created_at_i>${options.createdAfter}`;
 
-  if (minPoints > 0 && minComments > 0) {
-    const [byPoints, byComments] = await Promise.all([
-      fetchPage(query, [createdAfterFilter, `points>=${minPoints}`], MAX_HITS_PER_PAGE),
-      fetchPage(query, [createdAfterFilter, `num_comments>=${minComments}`], MAX_HITS_PER_PAGE),
-    ]);
-    return mergeByRecency([byPoints, byComments]).slice(0, requestedLimit);
-  }
+  const numericFilters =
+    minPoints > 0 && minComments > 0
+      ? JSON.stringify([createdAfterFilter, [`points>=${minPoints}`, `num_comments>=${minComments}`]])
+      : [
+          createdAfterFilter,
+          ...(minPoints ? [`points>=${minPoints}`] : []),
+          ...(minComments ? [`num_comments>=${minComments}`] : []),
+        ].join(',');
 
-  const numericFilters = [createdAfterFilter];
-  if (minPoints) numericFilters.push(`points>=${minPoints}`);
-  if (minComments) numericFilters.push(`num_comments>=${minComments}`);
-  return fetchPage(query, numericFilters, requestedLimit);
+  const params = new URLSearchParams({
+    query,
+    tags: 'story',
+    numericFilters,
+    hitsPerPage: String(options.hitsPerPage ?? DEFAULT_HITS_PER_PAGE),
+    typoTolerance: 'false',
+    queryType: 'prefixNone',
+  });
+  const res = await getJson<SearchResponse>(`${BASE}/search_by_date?${params}`);
+  return res.hits.filter((h) => h.title != null).map(hitToStory);
 }
