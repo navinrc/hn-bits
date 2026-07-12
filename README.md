@@ -107,7 +107,15 @@ All three keys are required, `telegram.enabled` alone is not enough. With nothin
 hn watch --once   # one pass: query subscriptions, notify new matches, exit
 ```
 
-Schedule it, e.g. every 30 minutes via crontab:
+The first `hn sub add` offers to install a cron job for you (every 30 minutes). Manage it anytime:
+
+```bash
+hn schedule status   # installed / not installed
+hn schedule install  # install now (no-op if already installed)
+hn schedule remove   # uninstall
+```
+
+Or set it up by hand:
 
 ```
 */30 * * * * cd /path/to/hn-bits && hn watch --once
