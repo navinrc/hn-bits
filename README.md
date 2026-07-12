@@ -79,9 +79,9 @@ hn config set ollama.model llama3.2
 
 Missing fields fall back to the defaults above; invalid JSON degrades to "AI disabled" with a warning rather than crashing the reader.
 
-### Subscriptions + Telegram notifications
+### Subscriptions + notifications
 
-`hn sub` tracks topic queries; `hn watch --once` checks each one, dedups against past matches, and sends new ones to Telegram. No daemon: schedule `hn watch --once` with cron or launchd.
+`hn sub` tracks topic queries; `hn watch --once` checks each one, dedups against past matches, and sends new ones to Telegram and/or macOS desktop notifications. No daemon: schedule `hn watch --once` with cron or launchd.
 
 ```bash
 hn sub add apple "Apple" --min-points 50   # topic name, Algolia query, min score
@@ -102,6 +102,17 @@ hn config set telegram.enabled true
 ```
 
 All three keys are required, `telegram.enabled` alone is not enough. With nothing enabled, `hn watch --once` exits with code 2.
+
+**macOS desktop notifications** (optional, works alone or alongside Telegram) use the [alerter](https://github.com/vjeantet/alerter) binary (`brew install vjeantet/tap/alerter`):
+
+```bash
+hn config set desktopNotifications.enabled true
+hn config set desktopNotifications.timeoutSeconds 10   # optional, default 10
+```
+
+Clicking a notification opens the story URL (HN discussion for text posts): clicks act only while the notification is on screen (`timeoutSeconds`); stale entries in Notification Center just dismiss. Desktop delivery is best-effort: if `alerter` is missing, the watcher warns and skips it (exit 0, nothing marked seen when it's the only channel).
+
+One-time macOS setup: alerter sends as Terminal.app, and macOS silently drops notifications from senders without permission. Check System Settings > Notifications > Terminal is allowed (banner style): there is no prompt and no error when it isn't.
 
 ```bash
 hn watch --once   # one pass: query subscriptions, notify new matches, exit

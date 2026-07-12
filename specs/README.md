@@ -15,7 +15,7 @@ Terminal-first Hacker News client (`hn` binary). Specs versioned by release; eac
 | V3.1 | Theme persistence (`ui.theme` config key) | **done** | [v3.1/](v3.1/01-theme-config.md) |
 | V3.2 | Live in-TUI theme picker (`T`) | **done** | [v3.2/](v3.2/01-live-theme-picker.md) |
 | V3.3 | `concord` theme, ported from chojs23/concord | **done** | [v3.3/](v3.3/01-concord-theme.md) |
-| V3.5 | macOS desktop notifications (alerter) | spec'd | [v3.5/](v3.5/01-desktop-notifications.md) |
+| V3.5 | macOS desktop notifications (alerter) | **done** | [v3.5/](v3.5/01-desktop-notifications.md) |
 | V3.6 | Discord notifications (webhook) | spec'd | [v3.6/](v3.6/01-discord.md) |
 | V3.7 | Min-comments subscription threshold (OR with min-points) | **done** | [v3.7/](v3.7/01-min-comments-threshold.md) |
 

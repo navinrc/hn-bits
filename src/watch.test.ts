@@ -10,6 +10,8 @@ const mocks = vi.hoisted(() => ({
   touchLastRun: vi.fn(),
   loadConfig: vi.fn(),
   send: vi.fn(),
+  desktopSend: vi.fn(),
+  createDesktopNotifier: vi.fn(),
 }));
 
 vi.mock('./api/algolia.js', () => ({ searchRecent: mocks.searchRecent }));
@@ -22,6 +24,7 @@ vi.mock('./lib/config.js', () => ({ loadConfig: mocks.loadConfig }));
 vi.mock('./notify/telegram.js', () => ({
   createTelegramNotifier: () => ({ name: 'telegram', send: mocks.send }),
 }));
+vi.mock('./notify/desktop.js', () => ({ createDesktopNotifier: mocks.createDesktopNotifier }));
 
 const { runWatch } = await import('./watch.js');
 
@@ -34,6 +37,10 @@ function makeStory(overrides: Partial<Story> = {}): Story {
 }
 
 const enabledConfig = { ollama: { host: '', model: '' }, telegram: { enabled: true, botToken: 't', chatId: 'c' } };
+const desktopOnlyConfig = {
+  ollama: { host: '', model: '' },
+  desktopNotifications: { enabled: true, timeoutSeconds: 10 },
+};
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -42,6 +49,8 @@ beforeEach(() => {
   mocks.loadConfig.mockReturnValue(enabledConfig);
   mocks.isSeen.mockReturnValue(false);
   mocks.send.mockResolvedValue(undefined);
+  mocks.desktopSend.mockResolvedValue(undefined);
+  mocks.createDesktopNotifier.mockReturnValue({ name: 'desktop', send: mocks.desktopSend });
 });
 
 describe('runWatch', () => {
@@ -50,6 +59,56 @@ describe('runWatch', () => {
     const code = await runWatch({ dryRun: false });
     expect(code).toBe(2);
     expect(mocks.listSubscriptions).not.toHaveBeenCalled();
+  });
+
+  it('passes the notifier gate with desktop-only config and marks matches seen', async () => {
+    const sub = makeSub();
+    mocks.loadConfig.mockReturnValue(desktopOnlyConfig);
+    mocks.listSubscriptions.mockReturnValue([sub]);
+    mocks.searchRecent.mockResolvedValue([makeStory({ id: 42 })]);
+
+    const code = await runWatch({ dryRun: false });
+
+    expect(code).toBe(0);
+    expect(mocks.createDesktopNotifier).toHaveBeenCalledWith({ timeoutSeconds: 10 });
+    expect(mocks.desktopSend).toHaveBeenCalledWith({ subscription: sub, story: expect.objectContaining({ id: 42 }) });
+    expect(mocks.markSeen).toHaveBeenCalledWith(42, 1, expect.any(Number));
+  });
+
+  it('exits 0 touching nothing when desktop is the only notifier and alerter is missing', async () => {
+    mocks.loadConfig.mockReturnValue(desktopOnlyConfig);
+    mocks.createDesktopNotifier.mockReturnValue(null);
+
+    const code = await runWatch({ dryRun: false });
+
+    expect(code).toBe(0);
+    expect(mocks.listSubscriptions).not.toHaveBeenCalled();
+    expect(mocks.markSeen).not.toHaveBeenCalled();
+    expect(mocks.touchLastRun).not.toHaveBeenCalled();
+  });
+
+  it('proceeds telegram-only when desktop is enabled but alerter is missing', async () => {
+    mocks.loadConfig.mockReturnValue({ ...enabledConfig, desktopNotifications: { enabled: true, timeoutSeconds: 10 } });
+    mocks.createDesktopNotifier.mockReturnValue(null);
+    mocks.listSubscriptions.mockReturnValue([makeSub()]);
+    mocks.searchRecent.mockResolvedValue([makeStory({ id: 5 })]);
+
+    const code = await runWatch({ dryRun: false });
+
+    expect(code).toBe(0);
+    expect(mocks.send).toHaveBeenCalledTimes(1);
+    expect(mocks.markSeen).toHaveBeenCalledWith(5, 1, expect.any(Number));
+  });
+
+  it('sends to both channels when telegram and desktop are enabled', async () => {
+    mocks.loadConfig.mockReturnValue({ ...enabledConfig, desktopNotifications: { enabled: true, timeoutSeconds: 10 } });
+    mocks.listSubscriptions.mockReturnValue([makeSub()]);
+    mocks.searchRecent.mockResolvedValue([makeStory({ id: 5 })]);
+
+    await runWatch({ dryRun: false });
+
+    expect(mocks.send).toHaveBeenCalledTimes(1);
+    expect(mocks.desktopSend).toHaveBeenCalledTimes(1);
   });
 
   it('exits 0 with no subscriptions', async () => {
