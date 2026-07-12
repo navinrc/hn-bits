@@ -62,6 +62,16 @@ v2/v3 specs were written against original V1, before v1.5/v1.6 shipped. Audit fo
 | `ai/context.ts` added to module tree; `Story.text?` + `keymap.ts` touch points noted | v2/00 |
 | Bookmarks: 6th `Saved` tab in TabBar (`hn bookmarks` opens on it), reuses `StoryListView` + continuous scroll (paging refs deleted), `★` moves to meta line, `B` in list + comments, mockup redrawn to 3-line rows / notch header / keymap footer | v3/00, 05 |
 
+## Spec revision - v3 subscriptions TUI + Saved s/a parity (2026-07-12)
+
+Grilling session on v3 UX. Decisions and spec changes (no code):
+
+| Change | Where |
+|--------|-------|
+| Subscriptions get a TUI: 7th `Subs` tab = manager (list/add/edit/delete, no unread counts), `enter` = per-topic matches (live Algolia, fixed 7-day window, full `s`/`a`/`B` key parity), add/edit form with debounced live preview, `S` in search results = subscribe-from-search. CLI `hn sub` stays; both share `db/subscriptions.ts` (gains `updateSubscription`) | new v3/06; v3/00, 01, 02 |
+| Saved tab gains `s`/`a` on the list itself via a `SavedList` container around `StoryListView` (bare `StoryListView` has no `useInput`, so the original spec silently lacked summary/Ask AI there) | v3/05, 00 |
+| TUI never touches `seen_items`/`lastRunAt`: watcher owns notification state, TUI browsing is stateless fetch. Unread counts explicitly out of V3 | v3/00, 06 |
+
 ## V2 — Local AI (specs/v2/)
 
 Summaries (`s`) and Ask AI (`a`) grounded in the story's article + comment thread, streamed from a local Ollama instance. No cloud calls, no API keys.
@@ -90,4 +100,4 @@ V2.5 is feature-complete against `specs/v2.5/`.
 - V1.6 phases 1–8 complete; V1.6 is feature-complete against `specs/v1.6/`.
 - V2 phases 1–4 complete; V2 is feature-complete against `specs/v2/`.
 - V2.5 phase 1 complete; V2.5 is feature-complete against `specs/v2.5/`.
-- Next: V3 (subscriptions + watcher + Telegram + SQLite + bookmarks) per `specs/v3/`.
+- Next: V3 (subscriptions CLI + subs tab TUI + watcher + Telegram + SQLite + bookmarks) per `specs/v3/`.

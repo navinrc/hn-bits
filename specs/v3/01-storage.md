@@ -96,6 +96,7 @@ Thin per-table modules, prepared statements, plain functions (no ORM):
 addSubscription(name: string, query: string, minPoints: number): Subscription
 listSubscriptions(): Subscription[]
 removeSubscription(name: string): boolean
+updateSubscription(id: number, fields: { name: string; query: string; minPoints: number }): Subscription  // TUI edit form
 touchLastRun(id: number, at: number): void
 
 // seen.ts
