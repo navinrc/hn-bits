@@ -12,7 +12,7 @@ Prerequisites: V3 complete (Notifier interface, watcher). Config keys already ex
 
 macOS-only via [alerter](https://github.com/vjeantet/alerter). Requires macOS 13+; some alerter features use private APIs and may break on future macOS releases. Stick to the stable subset (no reply/dropdown actions; click-to-open is in).
 
-Permission caveat (found live): alerter impersonates Terminal.app (`--sender` default) and macOS silently drops notifications from senders the user hasn't allowed — alerter still prints `@TIMEOUT` and exits 0, so nothing in the watcher can detect it. Notification permission for Terminal must be granted once in System Settings; documented in the README.
+Permission caveat (found live): alerter impersonates Terminal.app (`--sender` default) and macOS silently drops notifications from senders the user hasn't allowed: alerter still prints `@TIMEOUT` and exits 0, so nothing in the watcher can detect it. Notification permission for Terminal must be granted once in System Settings; documented in the README.
 
 ## Config
 
@@ -28,7 +28,7 @@ hn config set desktopNotifications.timeoutSeconds 10   # optional, default 10
 ## Implementation (`desktop.ts`)
 
 - **Binary discovery:** `alerter` looked up once per watcher run on `PATH`, then fallback dirs `/opt/homebrew/bin`, `/usr/local/bin`, `~/.local/bin` (cron runs with `PATH=/usr/bin:/bin`, which contains none of them). The wrapper invokes the discovered absolute path, not the bare name, for the same reason. Missing = one stderr warning `desktop: alerter not found (brew install vjeantet/tap/alerter), skipping` and the notifier is disabled for the run. Never exit 2; telegram unaffected.
-- **Desktop-only + missing binary:** the run stops after the warning with exit 0 and touches nothing — no queries, no `markSeen`, no `touchLastRun`. Matches are picked up by the first run after install instead of being silently marked seen.
+- **Desktop-only + missing binary:** the run stops after the warning with exit 0 and touches nothing: no queries, no `markSeen`, no `touchLastRun`. Matches are picked up by the first run after install instead of being silently marked seen.
 - **Invocation:** alerter has no `-open` flag and blocks until the notification is clicked, dismissed, or times out, printing the result. So `send()` spawns a detached `sh -c` wrapper (stdio ignored, `unref()`):
 
 ```sh
@@ -41,7 +41,7 @@ alerter v26.5 (Swift rewrite) accepts only double-dash flags; the single-dash fo
 
 - **Click opens the story URL** (HN discussion link for text posts, same rule as the telegram message). Body click (`@CONTENTCLICKED`) and the `Open` action both open. Title and URL shell-escaped.
 - **Fire-and-forget:** `send()` resolves once the wrapper spawns; the wrapper, not the watcher, waits out the interaction, lives at most `timeoutSeconds`, and exits with the notification. Watcher exit is never delayed.
-- `--group hn-<subId>-<storyId>`: per-story groups, so multiple matches from one run each keep their own clickable notification (a per-sub group made the newest match replace the rest — the collapsed stack opened only the most recent URL). A re-sent story still replaces its own stale copy.
+- `--group hn-<subId>-<storyId>`: per-story groups, so multiple matches from one run each keep their own clickable notification (a per-sub group made the newest match replace the rest: the collapsed stack opened only the most recent URL). A re-sent story still replaces its own stale copy.
 
 ## Watcher deltas ([../v3/03-watcher.md](../v3/03-watcher.md))
 
