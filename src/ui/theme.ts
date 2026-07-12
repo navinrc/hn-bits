@@ -111,6 +111,18 @@ const palettes = {
     link: LINK,
     email: EMAIL,
   },
+  // Ported from chojs23/concord's ratatui color constants (src/tui/ui/types.rs, message/format.rs).
+  concord: {
+    accent: ansi256(44),
+    title: ansi256(255),
+    muted: ansi256(243),
+    error: ansi256(196),
+    score: ansi256(208),
+    comment: ansi256(80),
+    selectionBackground: SELECTION_BACKGROUND,
+    link: LINK,
+    email: EMAIL,
+  },
 } satisfies Record<string, ThemeColors>;
 
 export type PaletteName = keyof typeof palettes;

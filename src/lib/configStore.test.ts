@@ -64,7 +64,7 @@ describe('setConfigValue', () => {
 
   it('throws on an unknown theme name', () => {
     expect(() => setConfigValue('ui.theme', 'not-a-theme')).toThrow(
-      "unknown theme 'not-a-theme' (valid: hn, mocha, dracula, tokyo, nord, gruvbox)",
+      "unknown theme 'not-a-theme' (valid: hn, mocha, dracula, tokyo, nord, gruvbox, concord)",
     );
   });
 });

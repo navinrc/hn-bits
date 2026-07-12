@@ -19,7 +19,7 @@ A fullscreen terminal client for Hacker News, built with TypeScript + Ink. Optio
 - Fullscreen TUI: top/new/best/ask/show/saved/subs tabs, vim-style navigation
 - Threaded comments view with fold/collapse
 - Search across stories
-- 6 built-in themes (`hn`, `mocha`, `dracula`, `tokyo`, `nord`, `gruvbox`)
+- 7 built-in themes (`hn`, `mocha`, `dracula`, `tokyo`, `nord`, `gruvbox`, `concord`)
 - Local AI article/thread summaries via Ollama, no cloud calls
 - Ask AI: multi-turn Q&A grounded in the current story
 - Subscriptions + `hn watch --once` radar with Telegram notifications
@@ -53,7 +53,7 @@ hn                    # fullscreen shell: top/new/best/ask/show/saved/subs tabs
 hn search <query...>  # search results
 hn bookmarks          # opens straight into the saved tab
 hn subs               # opens straight into the subs tab
-hn --theme dracula    # themes: hn (default), mocha, dracula, tokyo, nord, gruvbox
+hn --theme dracula    # themes: hn (default), mocha, dracula, tokyo, nord, gruvbox, concord
 ```
 
 Press `?` from any view for the full keybinding help overlay.
@@ -128,7 +128,7 @@ Sensitive values (e.g. `telegram.botToken`) print masked in `list` but raw from 
 
 ### Themes
 
-`hn`, `mocha`, `dracula`, `tokyo`, `nord`, `gruvbox` (default: `hn`, HN-orange). Pick with `--theme <name>`, the `HN_THEME` env var, `hn config set ui.theme <name>`, or press `T` in the TUI to switch live and persist the choice. Precedence: flag > env > config > default. `hn theme` shows the active theme and where it came from.
+`hn`, `mocha`, `dracula`, `tokyo`, `nord`, `gruvbox`, `concord` (default: `hn`, HN-orange). Pick with `--theme <name>`, the `HN_THEME` env var, `hn config set ui.theme <name>`, or press `T` in the TUI to switch live and persist the choice. Precedence: flag > env > config > default. `hn theme` shows the active theme and where it came from.
 
 ### Keybindings
 

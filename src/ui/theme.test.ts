@@ -8,6 +8,9 @@ let dir: string;
 
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), 'hn-bits-theme-'));
+  // Points at a file that doesn't exist yet, isolating every test in this file from
+  // whatever the real user's ~/.config/hn-bits/config.json happens to contain.
+  process.env.HN_BITS_CONFIG = join(dir, 'config.json');
 });
 
 afterEach(() => {
@@ -92,5 +95,9 @@ describe('resolveTheme', () => {
     for (const name of paletteNames()) {
       expect(resolveTheme(name).colors.accent).toMatch(/^ansi256\(\d+\)$/);
     }
+  });
+
+  it('gives concord a cyan accent, ported from concord\'s ratatui Color::Cyan', () => {
+    expect(resolveTheme('concord').colors.accent).toBe('ansi256(44)');
   });
 });
