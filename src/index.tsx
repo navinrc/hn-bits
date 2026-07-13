@@ -1,8 +1,16 @@
 #!/usr/bin/env node
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
 import { render } from 'ink';
 
 const alternateScreen = process.stdout.isTTY === true;
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const packageJson = JSON.parse(readFileSync(join(__dirname, '../package.json'), 'utf-8')) as {
+  version: string;
+};
 
 interface GlobalOptions {
   theme?: string;
@@ -16,7 +24,7 @@ const program = new Command();
 program
   .name('hn')
   .description('Terminal-first Hacker News client')
-  .version('0.1.0')
+  .version(packageJson.version)
   .option('-t, --theme <name>', 'color theme (see `hn theme` for the list)');
 
 program.action(async () => {
