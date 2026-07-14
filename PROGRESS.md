@@ -193,6 +193,17 @@ A story matching multiple subscriptions in one run fired one duplicate notificat
 
 V3.8 is feature-complete against `specs/v3.8/`. `npm test` (327 tests) and `npm run build`.
 
+## V3.9 — Topic-less subscriptions + always-24h watcher window (specs/v3.9/)
+
+Numeric-only subscriptions (e.g. points >= 250 OR comments >= 100 with no topic) were blocked by input validation only; the watcher also missed stories crossing a threshold more than ~6h after creation.
+
+| Phase | Status | Notes |
+|-------|--------|-------|
+| 1: optional query (CLI + TUI + display) | done | `sub add <name> [query...]` with guard (empty query + zero thresholds rejected, exit 1); `SubscriptionForm` validates "query or a threshold is required" and runs the live preview for an empty query once a threshold is set; new `queryLabel` in `subscriptionLabel.ts` renders `(any)` in `sub list`, `SubscriptionsView`, and `SubscriptionMatches` header. Matching needed no changes: Algolia treats empty `query` as match-all and `searchRecent` already OR's the thresholds server-side |
+| 2: always-24h window + hitsPerPage 100 | done | `windowStart(now)` returns now-24h unconditionally (`SIX_HOURS` overlap dropped; per-(story, sub) `seen_items` rows, never pruned, block re-notification); `fetchMatches` passes `hitsPerPage: 100` since a broad sub can exceed 50 hits/day (newest-first, so truncation only drops oldest already-seen stories). Regression-tested by temp-reverting to a 6h window (window test failed, restored). Live-verified: `hn watch --once --dry-run` on a temp DB with `hot` (no query, ≥250 pts or ≥100 cmts) and `india` — hot matched across all topics including a 138-pt story in on comments, india matched keyword hits |
+
+V3.9 is feature-complete against `specs/v3.9/`. `npm test` (335 tests) and `npm run build`.
+
 ## Known gaps / follow-ups
 
 - V1.6 phases 1–8 complete; V1.6 is feature-complete against `specs/v1.6/`.
@@ -205,4 +216,5 @@ V3.8 is feature-complete against `specs/v3.8/`. `npm test` (327 tests) and `npm 
 - V3.7 phase 1 complete; V3.7 is feature-complete against `specs/v3.7/`.
 - V3.5 phases 1–3 complete; V3.5 is feature-complete against `specs/v3.5/`.
 - V3.8 phase 1 complete; V3.8 is feature-complete against `specs/v3.8/`.
+- V3.9 phases 1–2 complete; V3.9 is feature-complete against `specs/v3.9/`.
 - Next: V3.6 (Discord webhook notifications).

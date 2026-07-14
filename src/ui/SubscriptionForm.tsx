@@ -47,9 +47,12 @@ export function SubscriptionForm({
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const previewToken = useRef(0);
 
+  const hasThreshold = (Number(minPoints) || 0) > 0 || (Number(minComments) || 0) > 0;
+  const previewActive = Boolean(query.trim()) || hasThreshold;
+
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (!query.trim()) {
+    if (!previewActive) {
       setPreview([]);
       return;
     }
@@ -81,9 +84,9 @@ export function SubscriptionForm({
     const trimmedName = name.trim();
     const trimmedQuery = query.trim();
     if (!trimmedName) return setError('name is required');
-    if (!trimmedQuery) return setError('query is required');
     const points = Number(minPoints) || 0;
     const comments = Number(minComments) || 0;
+    if (!trimmedQuery && points === 0 && comments === 0) return setError('query or a threshold is required');
     try {
       if (mode === 'add') addSubscription(trimmedName, trimmedQuery, points, comments);
       else
@@ -172,7 +175,7 @@ export function SubscriptionForm({
         {cursor('minComments')}
       </Text>
       <Text> </Text>
-      {query.trim() && (
+      {previewActive && (
         <Box flexDirection="column">
           <Text dimColor>
             preview (last 7 days, {previewLabel}):

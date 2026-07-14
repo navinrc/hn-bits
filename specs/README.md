@@ -19,6 +19,7 @@ Terminal-first Hacker News client (`hn` binary). Specs versioned by release; eac
 | V3.6 | Discord notifications (webhook) | spec'd | [v3.6/](v3.6/01-discord.md) |
 | V3.7 | Min-comments subscription threshold (OR with min-points) | **done** | [v3.7/](v3.7/01-min-comments-threshold.md) |
 | V3.8 | Merge multi-subscription matches into one notification per story | **done** | [v3.8/](v3.8/01-merge-multi-sub-notifications.md) |
+| V3.9 | Topic-less subscriptions + always-24h watcher window | **done** | [v3.9/](v3.9/01-topicless-subs-24h-window.md) |
 
 ## Roadmap
 

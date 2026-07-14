@@ -7,8 +7,8 @@ import { createDesktopNotifier } from './notify/desktop.js';
 import type { Notifier } from './notify/notifier.js';
 import { createTelegramNotifier } from './notify/telegram.js';
 
-const SIX_HOURS = 6 * 60 * 60;
 const TWENTY_FOUR_HOURS = 24 * 60 * 60;
+const HITS_PER_PAGE = 100;
 
 export interface WatchOptions {
   dryRun: boolean;
@@ -18,9 +18,9 @@ function log(message: string): void {
   console.log(`[${new Date().toISOString()}] ${message}`);
 }
 
-function windowStart(lastRunAt: number | null, now: number): number {
-  if (lastRunAt == null) return now - TWENTY_FOUR_HOURS;
-  return Math.max(lastRunAt - SIX_HOURS, 0);
+/** Always the full 24h: catches stories crossing a threshold late; seen_items blocks repeats. */
+function windowStart(now: number): number {
+  return now - TWENTY_FOUR_HOURS;
 }
 
 interface BuiltNotifiers {
@@ -53,9 +53,10 @@ function buildNotifiers(): BuiltNotifiers {
 async function fetchMatches(sub: Subscription, now: number): Promise<Story[] | null> {
   try {
     const stories = await searchRecent(sub.query, {
-      createdAfter: windowStart(sub.lastRunAt, now),
+      createdAfter: windowStart(now),
       minPoints: sub.minPoints,
       minComments: sub.minComments,
+      hitsPerPage: HITS_PER_PAGE,
     });
     return stories.filter((story) => !isSeen(story.id, sub.id));
   } catch (err) {
