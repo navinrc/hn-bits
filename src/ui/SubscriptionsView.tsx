@@ -5,7 +5,7 @@ import { listSubscriptions, removeSubscription, type Subscription } from '../db/
 import { formatAge } from '../lib/format.js';
 import { clampSelection, mapFeedKey } from '../lib/listNavigation.js';
 import { hasScheduledJob, installScheduledJob, removeScheduledJob } from '../lib/schedule.js';
-import { thresholdLabel } from '../lib/subscriptionLabel.js';
+import { queryLabel, thresholdLabel } from '../lib/subscriptionLabel.js';
 import { ensureVisibleLines, sliceByLines } from '../lib/viewport.js';
 import { footerRows, SUBS_KEYS } from './keymap.js';
 import { HEADER_ROWS } from './Layout.js';
@@ -125,7 +125,7 @@ export function SubscriptionsView({
         const background = isSelected ? theme.colors.selectionBackground : undefined;
         return (
           <Text key={sub.id} backgroundColor={background}>
-            {marker} {sub.name.padEnd(nameWidth)}  "{sub.query}"  {thresholdLabel(sub.minPoints, sub.minComments).padEnd(19)}  added{' '}
+            {marker} {sub.name.padEnd(nameWidth)}  {queryLabel(sub.query)}  {thresholdLabel(sub.minPoints, sub.minComments).padEnd(19)}  added{' '}
             {formatAge(sub.createdAt)} ago
           </Text>
         );

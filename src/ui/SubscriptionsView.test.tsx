@@ -65,6 +65,17 @@ describe('SubscriptionsView', () => {
     instance.unmount();
   });
 
+  it('renders (any) for a topic-less subscription', async () => {
+    addSubscription('hot', '', 250, 100);
+    const { instance } = renderView();
+    await instance.waitUntilRenderFlush();
+
+    const frame = instance.lastFrame();
+    expect(frame).toContain('(any)');
+    expect(frame).toContain('≥250 pts or ≥100 cmts');
+    instance.unmount();
+  });
+
   it('opens matches for the selected subscription on enter', async () => {
     addSubscription('postgres', 'postgres', 0);
     const { instance, onSelectMatches } = renderView();

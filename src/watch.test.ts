@@ -191,15 +191,28 @@ describe('runWatch', () => {
     expect(mocks.touchLastRun).not.toHaveBeenCalledWith(1, expect.any(Number));
   });
 
-  it('windows the first run at now-24h and later runs at lastRunAt-6h', async () => {
+  it('windows every run at now-24h regardless of lastRunAt', async () => {
     const now = Math.floor(Date.now() / 1000);
     mocks.listSubscriptions.mockReturnValue([makeSub({ lastRunAt: now - 1000 })]);
     mocks.searchRecent.mockResolvedValue([]);
 
     await runWatch({ dryRun: false });
 
-    const createdAfter = mocks.searchRecent.mock.calls[0]![1].createdAfter;
-    expect(createdAfter).toBeCloseTo(now - 1000 - 6 * 60 * 60, -1);
+    const options = mocks.searchRecent.mock.calls[0]![1];
+    expect(options.createdAfter).toBeCloseTo(now - 24 * 60 * 60, -1);
+    expect(options.hitsPerPage).toBe(100);
+  });
+
+  it('notifies an unseen story even when the sub ran recently (late threshold crosser)', async () => {
+    const now = Math.floor(Date.now() / 1000);
+    mocks.listSubscriptions.mockReturnValue([makeSub({ lastRunAt: now - 1000 })]);
+    const oldStory = makeStory({ id: 7, time: now - 10 * 60 * 60 });
+    mocks.searchRecent.mockResolvedValue([oldStory]);
+
+    const code = await runWatch({ dryRun: false });
+
+    expect(code).toBe(0);
+    expect(mocks.send).toHaveBeenCalledWith(expect.objectContaining({ story: oldStory }));
   });
 
   it('merges a story matched by multiple subscriptions into one notification', async () => {

@@ -171,16 +171,21 @@ async function promptInstallSchedule(): Promise<void> {
 }
 
 sub
-  .command('add <name> <query...>')
+  .command('add <name> [query...]')
   .description('Add a subscription')
   .option('--min-points <n>', 'minimum points threshold', '0')
   .option('--min-comments <n>', 'minimum comments threshold', '0')
   .action(async (name: string, queryParts: string[], options: SubAddOptions) => {
     const minPoints = parseNonNegativeInt(options.minPoints, '--min-points');
     const minComments = parseNonNegativeInt(options.minComments, '--min-comments');
+    const query = (queryParts ?? []).join(' ');
+    if (!query && minPoints === 0 && minComments === 0) {
+      console.error('query or at least one threshold (--min-points/--min-comments) required');
+      process.exit(1);
+    }
     const { addSubscription, listSubscriptions } = await import('./db/subscriptions.js');
     try {
-      addSubscription(name, queryParts.join(' '), minPoints, minComments);
+      addSubscription(name, query, minPoints, minComments);
       console.log(`added '${name}'`);
     } catch (err) {
       console.error((err as Error).message);
@@ -198,7 +203,7 @@ sub
   .action(async () => {
     const { listSubscriptions } = await import('./db/subscriptions.js');
     const { formatAge } = await import('./lib/format.js');
-    const { thresholdLabel } = await import('./lib/subscriptionLabel.js');
+    const { thresholdLabel, queryLabel } = await import('./lib/subscriptionLabel.js');
     const subs = listSubscriptions();
     if (subs.length === 0) {
       console.log('no subscriptions yet');
@@ -208,7 +213,7 @@ sub
     for (const s of subs) {
       const threshold = thresholdLabel(s.minPoints, s.minComments);
       const lastRun = s.lastRunAt == null ? 'never' : `${formatAge(s.lastRunAt)} ago`;
-      console.log(`${s.name.padEnd(nameWidth)}  "${s.query}"  ${threshold}  ${lastRun}`);
+      console.log(`${s.name.padEnd(nameWidth)}  ${queryLabel(s.query)}  ${threshold}  ${lastRun}`);
     }
   });
 

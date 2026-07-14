@@ -8,6 +8,7 @@ import { toggleBookmark } from '../db/bookmarks.js';
 import type { Subscription } from '../db/subscriptions.js';
 import type { Config } from '../lib/config.js';
 import { clampSelection } from '../lib/listNavigation.js';
+import { queryLabel } from '../lib/subscriptionLabel.js';
 import { ensureVisibleLines } from '../lib/viewport.js';
 import { footerRows, SUB_MATCHES_KEYS } from './keymap.js';
 import { HEADER_ROWS } from './Layout.js';
@@ -120,7 +121,7 @@ export function SubscriptionMatches({
   return (
     <Box flexDirection="column">
       <Text>
-        sub: {subscription.name} "{subscription.query}"
+        sub: {subscription.name} {queryLabel(subscription.query)}
       </Text>
       {stories.length === 0 ? (
         <Text dimColor>no matches in the last 7 days</Text>

@@ -40,5 +40,5 @@ from the past 24h; seen rows block repeats afterwards.
 
 | Phase | Status | Notes |
 |-------|--------|-------|
-| 1: optional query (CLI + TUI + display) | pending | |
-| 2: always-24h window + hitsPerPage 100 | pending | |
+| 1: optional query (CLI + TUI + display) | done | `sub add <name> [query...]` with empty-query guard; form validates "query or a threshold"; preview runs on empty query once a threshold is set; `queryLabel` renders `(any)` in `sub list`, subs TUI, and matches header |
+| 2: always-24h window + hitsPerPage 100 | done | `windowStart(now)` unconditional 24h, `SIX_HOURS` dropped, `hitsPerPage: 100` in `fetchMatches`; regression-tested by temp-reverting to a 6h window (window test failed, then restored) |

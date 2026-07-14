@@ -164,6 +164,60 @@ describe('SubscriptionForm', () => {
     instance.unmount();
   });
 
+  it('saves a topic-less subscription when a threshold is set', async () => {
+    const { instance, onSave } = renderForm();
+    await instance.waitUntilRenderFlush();
+
+    instance.stdin.writeInput('hot');
+    await instance.waitUntilRenderFlush();
+    instance.stdin.writeInput(TAB);
+    await instance.waitUntilRenderFlush();
+    instance.stdin.writeInput(TAB);
+    await instance.waitUntilRenderFlush();
+    instance.stdin.writeInput('250');
+    await instance.waitUntilRenderFlush();
+    instance.stdin.writeInput('\r');
+    await instance.waitUntilRenderFlush();
+
+    expect(onSave).toHaveBeenCalled();
+    expect(listSubscriptions()).toEqual([expect.objectContaining({ name: 'hot', query: '', minPoints: 250 })]);
+    instance.unmount();
+  });
+
+  it('shows an inline error when both query and thresholds are empty', async () => {
+    const { instance, onSave } = renderForm();
+    await instance.waitUntilRenderFlush();
+
+    instance.stdin.writeInput('hot');
+    await instance.waitUntilRenderFlush();
+    instance.stdin.writeInput('\r');
+    await instance.waitUntilRenderFlush();
+
+    expect(onSave).not.toHaveBeenCalled();
+    expect(instance.lastFrame()).toContain('query or a threshold is required');
+    instance.unmount();
+  });
+
+  it('shows a live preview for an empty query once a threshold is set', async () => {
+    searchRecent.mockResolvedValue([makeStory(2)]);
+    const { instance } = renderForm();
+    await instance.waitUntilRenderFlush();
+
+    instance.stdin.writeInput(TAB);
+    await instance.waitUntilRenderFlush();
+    instance.stdin.writeInput(TAB);
+    await instance.waitUntilRenderFlush();
+    instance.stdin.writeInput('250');
+    await instance.waitUntilRenderFlush();
+
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    await instance.waitUntilRenderFlush();
+
+    expect(searchRecent).toHaveBeenCalledWith('', expect.objectContaining({ minPoints: 250 }));
+    expect(instance.lastFrame()).toContain('Tokio 2');
+    instance.unmount();
+  });
+
   it('shows a duplicate-name error from addSubscription', async () => {
     addSubscription('postgres', 'postgres', 0);
     const { instance, onSave } = renderForm();
